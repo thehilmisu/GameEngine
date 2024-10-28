@@ -1,0 +1,9 @@
+# Directories
+bin/
+lib/
+vscode/
+
+# Files
+
+*.o
+*.a
