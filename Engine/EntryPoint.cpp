@@ -6,11 +6,13 @@ extern Application* CreateApplication();
 int main() 
 {
     Log::Init();
-    Log::GetCoreLogger()->warn("Initialized Log");
-    Log::GetClientLogger()->info("Hello!");
+    CORE_WARN("Initialized Log");
+    int a =3; 
+    CLIENT_INFO("Hello! var={0}", a);
 
-    Application* app = CreateApplication();
-    Application::Run(app);
+    auto app = CreateApplication();
+    app->Run();
     delete app;
+    
     return 0;
 }

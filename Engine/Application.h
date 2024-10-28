@@ -4,20 +4,16 @@
 
 #include "Log.h"
 
-class Application {
+class Application 
+{
 public:
-    virtual ~Application() = default;
-
-    // Static start method to encapsulate main function logic
-    static void Run(Application* appInstance);
-
-protected:
-    // Constructor is protected to prevent direct instantiation
-    Application() = default;
-
-    // Pure virtual function to be implemented by client subclasses
-    virtual void Run() = 0;
+    Application();
+    virtual ~Application();
+    
+    void Run();
 };
+
+Application* CreateApplication();
 
 #endif // APPLICATION_H
 

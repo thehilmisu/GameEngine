@@ -1,16 +1,18 @@
 #include "Application.h"
 
-class Sandbox : public Application {
+class Sandbox : public Application
+{
 public:
-    Sandbox() {
-        //Log::log("Sandbox application initialized.", Log::Level::INFO);
-    }
+	Sandbox()
+	{
 
-protected:
-    void Run() override {
-        //Log::log("Sandbox application is running...", Log::Level::INFO);
-        // Sandbox application logic here
-    }
+	}
+
+	~Sandbox()
+	{
+
+	}
+
 };
 
 // Factory function to create the application instance
