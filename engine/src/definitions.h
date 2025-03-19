@@ -43,6 +43,6 @@ STATIC_ASSERT(sizeof(f64) == 8, "Expected f64 to be 8 byte");
 #define TRUE  1
 #define FALSE 0 
 
-#define KAPI __attribute__((visibility("default")))
+#define API __attribute__((visibility("default")))
 
 //#define KAPI
