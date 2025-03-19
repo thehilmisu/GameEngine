@@ -117,7 +117,7 @@ b8 platform_pump_messages(platform_state* plat_state) {
 }
 
 void* platform_allocate(u64 size, b8 aligned) {
-    return malloc(size);  // SDL2 doesn’t affect memory allocation
+    return malloc(size);  
 }
 
 void platform_free(void* block, b8 aligned) {
