@@ -1,0 +1,68 @@
+
+Inspired by : KOHI GameEngine, Travis Vroman  
+
+Tool set
+########################
+
+Project will fully written in C and clang will be used as a compiler to 
+achieve the cross-platform support. Initially, windows and linux will be 
+supported.
+
+
+Project Structure
+########################
+
+		[Engine (dll, so)]
+
+
+[Hot Reloadable Game code]
+
+
+[Game Application (exe)]  [TestBed (exe)]  [Editor (exe)]
+
+
+
+Feature List
+########################
+
+	- Lightweight build system
+	- Low-level utilities (dynamic arrays, string handling, etc)
+	- Platform Layer ( Windows and Linux for now)
+		- Windowing, input, console interactions
+	- Logger implementation
+	- File I/O
+	- Application Layer
+	- Renderer/API Abstraction Layer
+	- Memory management ( allocators, etc )
+	- Profiling/Debugging utilities
+	- "Scripting" support
+	- Physics System
+
+
+Engine Architecture
+########################
+
+
+Renderer Front-end
+
+Renderer Back-end
+
+Audio
+
+Others
+
+							Resource Management
+						########################
+Images		Materials		Meshes		Animations		World Maps
+
+							Core
+						########################
+Logger		Assertions		Data Structures		Memory allocators		Math Lib		Parser (XML, csv, json)
+
+Engine Config	Profiling	Async File I/O		Localization		String Lib		RNG
+
+							Platform Layer
+						########################
+Windows/Linux API		Console Output		File I/O	Memory		Renderer API
+
+

@@ -1,0 +1,9 @@
+# Vulkan Installation
+	sudo apt install -y libvulkan1 vulkan-tools libvulkan-dev
+	Download vulkan sdk
+		- source setup-env.sh
+	check 
+		echo $VULKAN_SDK
+
+# Clang Installation
+	sudo apt install clang
