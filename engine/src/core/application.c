@@ -4,6 +4,7 @@
 #include <core/logger.h>
 #include <platform/platform.h>
 #include <core/kmemory.h>
+#include <core/event.h>
 
 typedef struct application_state {
     game* game_instance;
@@ -33,6 +34,11 @@ b8 application_create(game* game_instance){
 
     app_state.is_running = TRUE;
     app_state.is_suspended = FALSE;
+
+    if(!event_initialize()){
+        ERROR("Event system failed to initialize!");
+        return FALSE;
+    }
     
     if(!platform_startup(&app_state.platform, game_instance->app_config.name, 
                         game_instance->app_config.start_pos_x, game_instance->app_config.start_pos_y, 
@@ -72,6 +78,7 @@ b8 application_run(){
         }
     }
     app_state.is_running = FALSE;
+    event_shutdown();
     platform_shutdown(&app_state.platform);
     return TRUE;
 }

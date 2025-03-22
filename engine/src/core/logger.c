@@ -49,13 +49,13 @@ void log_output(log_level level, const char* message, ...){
     vsnprintf(out_message, size, message, arg_ptr);
     va_end(arg_ptr);
 
-    char m[size];
-    sprintf(m, "%s%s\n", level_strings[level], out_message);
+    char msg[size];
+    sprintf(msg, "%s%s\n", level_strings[level], out_message);
 
     if(is_error){
-        platform_console_write_error(m, level);
+        platform_console_write_error(msg, level);
     }else{
-        platform_console_write(m,level);
+        platform_console_write(msg, level);
     }
 }
 
