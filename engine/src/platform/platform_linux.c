@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <containers/darray.h>
 #include <time.h>  // For platform_get_absolute_time and platform_sleep
 
 // Internal state for SDL2 platform
@@ -192,4 +193,7 @@ void platform_sleep(u64 ms) {
     SDL_Delay(ms);  // SDL2’s built-in delay function
 }
 
+void platform_get_required_extension_names(const char ***names_darray) {
+     darray_push(*names_darray, &"VK_KHR_xcb_surface");  // VK_KHR_xlib_surface?
+}
 #endif
