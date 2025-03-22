@@ -8,7 +8,8 @@ CFILES=$(find . -type f -name "*.c")
 
 OUTPUT="engine"
 
-CFLAGS="-g -shared -fdeclspec -fPIC -Wall -Werror"
+#CFLAGS="-g -shared -fdeclspec -fPIC -Wall -Werror"
+CFLAGS="-g -shared -fdeclspec -fPIC"
 LINKERFLAGS="-lvulkan -lSDL2 -L$VULKAN_SDK/lib -lSDL2_ttf -lSDL2main -lSDL2_image"
 
 INCLUDES="-Isrc -I$VULKAN_SDK/include"

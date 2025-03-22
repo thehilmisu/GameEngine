@@ -25,7 +25,7 @@ b8 platform_startup(
     i32 width,
     i32 height) {
     // Initialize SDL2
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_EVERYTHING) < 0) {
         FATAL("SDL could not initialize! SDL_Error: %s", SDL_GetError());
         return FALSE;
     }
