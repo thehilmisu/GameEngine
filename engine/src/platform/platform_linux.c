@@ -1,5 +1,6 @@
 #include "platform.h"
-
+#include <SDL2/SDL_events.h>
+#include <core/event.h>
 #ifdef __linux__
 #include <sys/time.h>
 
@@ -47,6 +48,7 @@ b8 platform_startup(
         height,                     // Height
         SDL_WINDOW_SHOWN            // Flags (visible window)
     );
+
     if (!state->window) {
         FATAL("Window could not be created! SDL_Error: %s", SDL_GetError());
         free(state);
@@ -80,30 +82,63 @@ b8 platform_pump_messages(platform_state* plat_state) {
                 state->running = FALSE;
                 break;
 
-            case SDL_KEYDOWN:
+            case SDL_KEYDOWN: {
+                SDL_Scancode code = event.key.keysym.scancode;
+                SDL_Keycode keycode = SDL_GetKeyFromScancode(code);
+                // Fire off an event for immediate processing.
+                event_context context;
+                context.data.u16[0] = keycode;
+                event_fire(EVENT_CODE_KEY_PRESSED, 0, context);
+                break;
+            }
             case SDL_KEYUP: {
-                // TODO: Handle key presses and releases
-                // Example: SDL_Scancode code = event.key.keysym.scancode;
+                SDL_Scancode code = event.key.keysym.scancode;
+                SDL_Keycode keycode = SDL_GetKeyFromScancode(code);
+                // Fire off an event for immediate processing.
+                event_context context;
+                context.data.u16[0] = keycode;
+                event_fire(EVENT_CODE_KEY_RELEASED, 0, context);
                 break;
             }
 
-            case SDL_MOUSEBUTTONDOWN:
+            case SDL_MOUSEBUTTONDOWN:{
+                // Fire the event.
+                u8 button = event.button.button;
+                event_context context;
+                context.data.u16[0] = button;
+                event_fire(EVENT_CODE_BUTTON_PRESSED, 0, context);
+                break;
+            }
             case SDL_MOUSEBUTTONUP: {
-                // TODO: Handle mouse button presses and releases
-                // Example: Uint8 button = event.button.button;
+                // Fire the event.
+                u8 button = event.button.button;
+                event_context context;
+                context.data.u16[0] = button;
+                event_fire(EVENT_CODE_BUTTON_RELEASED, 0, context);
                 break;
             }
 
             case SDL_MOUSEMOTION: {
-                // TODO: Handle mouse movement
-                // Example: int x = event.motion.x, y = event.motion.y;
+                int x = event.motion.x, y = event.motion.y;
+                // Fire the event.
+                event_context context;
+                context.data.u16[0] = x;
+                context.data.u16[1] = y;
+                event_fire(EVENT_CODE_MOUSE_MOVED, 0, context);
                 break;
             }
 
+            case SDL_MOUSEWHEEL: {
+                // Fire the event.
+                event_context context;
+                context.data.u16[0] = event.wheel.y;
+                event_fire(EVENT_CODE_MOUSE_WHEEL, 0, context);
+                break;
+            }
             case SDL_WINDOWEVENT:
                 if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
                     // TODO: Handle resizing
-                    // Example: int w = event.window Who deserves the death penalty?ata1, h = event.window.data2;
+                    // Example: int w = event.window ata1, h = event.window.data2;
                 }
                 break;
 

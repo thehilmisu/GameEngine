@@ -5,6 +5,7 @@
 #include <platform/platform.h>
 #include <core/kmemory.h>
 #include <core/event.h>
+#include <SDL2/SDL_keycode.h>
 
 typedef struct application_state {
     game* game_instance;
@@ -18,6 +19,10 @@ typedef struct application_state {
 
 static b8 initialized = FALSE;
 static application_state app_state;
+
+// Event handlers
+b8 application_on_event(u16 code, void* sender, void* listener_inst, event_context context);
+b8 application_on_key(u16 code, void* sender, void* listener_inst, event_context context);
 
 b8 application_create(game* game_instance){
    
@@ -39,6 +44,10 @@ b8 application_create(game* game_instance){
         ERROR("Event system failed to initialize!");
         return FALSE;
     }
+    
+    event_register(EVENT_CODE_APPLICATION_QUIT, 0, application_on_event);
+    event_register(EVENT_CODE_KEY_PRESSED, 0, application_on_key);
+    event_register(EVENT_CODE_KEY_RELEASED, 0, application_on_key);
     
     if(!platform_startup(&app_state.platform, game_instance->app_config.name, 
                         game_instance->app_config.start_pos_x, game_instance->app_config.start_pos_y, 
@@ -78,7 +87,52 @@ b8 application_run(){
         }
     }
     app_state.is_running = FALSE;
+    
+    event_unregister(EVENT_CODE_APPLICATION_QUIT, 0, application_on_event);
+    event_unregister(EVENT_CODE_KEY_PRESSED, 0, application_on_key);
+    event_unregister(EVENT_CODE_KEY_RELEASED, 0, application_on_key);
     event_shutdown();
+    
     platform_shutdown(&app_state.platform);
+    
     return TRUE;
 }
+
+b8 application_on_event(u16 code, void* sender, void* listener_inst, event_context context) {
+     switch (code) {
+         case EVENT_CODE_APPLICATION_QUIT: {
+             INFO("EVENT_CODE_APPLICATION_QUIT recieved, shutting down.\n");
+             app_state.is_running = FALSE;
+             return TRUE;
+         }
+     }
+ 
+     return FALSE;
+ }
+ 
+ b8 application_on_key(u16 code, void* sender, void* listener_inst, event_context context) {
+     if (code == EVENT_CODE_KEY_PRESSED) {
+         u16 key_code = context.data.u16[0];
+         if (key_code == SDLK_ESCAPE) {
+             // NOTE: Technically firing an event to itself, but there may be other listeners.
+             event_context data = {};
+             event_fire(EVENT_CODE_APPLICATION_QUIT, 0, data);
+             // Block anything else from processing this.
+             return TRUE;
+         } else if (key_code == SDLK_a) {
+             // Example on checking for a key
+             DEBUG("Explicit - A key pressed!");
+         } else {
+             DEBUG("'%c' key pressed in window.", key_code);
+         }
+     } else if (code == EVENT_CODE_KEY_RELEASED) {
+         u16 key_code = context.data.u16[0];
+         if (key_code == SDLK_b) {
+             // Example on checking for a key
+             DEBUG("Explicit - B key released!");
+         } else {
+             DEBUG("'%c' key released in window.", key_code);
+         }
+     }
+     return FALSE;
+ }
