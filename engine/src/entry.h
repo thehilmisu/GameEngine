@@ -2,13 +2,15 @@
 
 #include <core/application.h>
 #include <core/logger.h>
+#include <core/kmemory.h>
 #include <game_types.h>
 
 //external function to create the game
 extern b8 create_game(game* out_game);
 
-
 int main(void){
+
+    initialize_memory();
 
     game game_instance;
     if(!create_game(&game_instance)){
@@ -21,8 +23,6 @@ int main(void){
         FATAL("The game's function pointers must be assigned!");
         return -2;
     }
-
-
    
     if(!application_create(&game_instance)){
         INFO("Application failed to create!");
@@ -34,7 +34,7 @@ int main(void){
         return 2;
     }
 
-    application_run();
+    shutdown_memory();
 
     return 0;
 }

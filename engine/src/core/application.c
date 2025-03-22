@@ -3,6 +3,7 @@
 #include "game_types.h"
 #include <core/logger.h>
 #include <platform/platform.h>
+#include <core/kmemory.h>
 
 typedef struct application_state {
     game* game_instance;
@@ -18,6 +19,9 @@ static b8 initialized = FALSE;
 static application_state app_state;
 
 b8 application_create(game* game_instance){
+   
+    // called but for now useless
+    initialize_logging();
 
     if(initialized){
         ERROR("application_create called more than once");
@@ -25,8 +29,7 @@ b8 application_create(game* game_instance){
     }
 
     app_state.game_instance = game_instance;
-    // called but for now useless
-    initialize_logging();
+    
 
     app_state.is_running = TRUE;
     app_state.is_suspended = FALSE;
@@ -49,6 +52,8 @@ b8 application_create(game* game_instance){
 }
 
 b8 application_run(){
+    INFO(get_memory_usage_str());
+
     while(app_state.is_running){
         if(!platform_pump_messages(&app_state.platform)){ app_state.is_running = FALSE;}
         

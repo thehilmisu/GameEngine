@@ -1,4 +1,4 @@
-e#!/bin/bas0
+#!/bin/bash
 
 set echo on
 

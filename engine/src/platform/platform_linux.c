@@ -136,16 +136,16 @@ void* platform_set_memory(void* dest, i32 value, u64 size) {
     return memset(dest, value, size);
 }
 
-void platform_console_write(const char* message, u8 colour) {
+void platform_console_write(const char* message, log_level level) {
     // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
     const char* colour_strings[] = {"0;41", "1;31", "1;33", "1;32", "1;34", "1;30"};
-    printf("\033[%sm%s\033[0m", colour_strings[colour], message);
+    printf("\033[%sm%s\033[0m", colour_strings[level], message);
 }
 
-void platform_console_write_error(const char* message, u8 colour) {
+void platform_console_write_error(const char* message, log_level level) {
     // FATAL,ERROR,WARN,INFO,DEBUG,TRACE
     const char* colour_strings[] = {"0;41", "1;31", "1;33", "1;32", "1;34", "1;30"};
-    printf("\033[%sm%s\033[0m", colour_strings[colour], message);
+    printf("\033[%sm%s\033[0m", colour_strings[level], message);
 }
 
 f64 platform_get_absolute_time() {

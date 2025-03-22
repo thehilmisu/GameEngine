@@ -1,5 +1,6 @@
 #include "logger.h"
 #include "asserts.h"
+#include "platform/platform.h"
 
 // TODO: you should make that platform specific
 #include <stdarg.h>
@@ -37,7 +38,7 @@ void log_output(log_level level, const char* message, ...){
         "[DEBUG]   : ", 
         "[TRACE]   : "
         };
-    //b8 is_error = level < 2;
+    b8 is_error = level < 2;
 
     i32 size = 32000;
     char out_message[size];
@@ -51,7 +52,11 @@ void log_output(log_level level, const char* message, ...){
     char m[size];
     sprintf(m, "%s%s\n", level_strings[level], out_message);
 
-    printf("%s", m);
+    if(is_error){
+        platform_console_write_error(m, level);
+    }else{
+        platform_console_write(m,level);
+    }
 }
 
 
