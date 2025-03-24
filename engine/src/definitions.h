@@ -43,5 +43,7 @@ STATIC_ASSERT(sizeof(f64) == 8, "Expected f64 to be 8 byte");
 #define TRUE  1
 #define FALSE 0 
 
+#define CLAMP(value, min, max) (value <= min) ? min : (value >= max) ? max : value
+
 #define API __attribute__((visibility("default")))
 
