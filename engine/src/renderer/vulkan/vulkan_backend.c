@@ -143,8 +143,20 @@ void vulkan_renderer_backend_shutdown(renderer_backend* backend) {
     }
 #endif
 
+    DEBUG("Destroying Vulkan device...");
+    if (context.device.logical_device) {
+        vkDestroyDevice(context.device.logical_device, context.allocator);
+    }
+
+    DEBUG("Destroying Vulkan surface...");
+    if (context.surface) {
+        vkDestroySurfaceKHR(context.instance, context.surface, context.allocator);
+    }
+
     DEBUG("Destroying Vulkan instance...");
-    vkDestroyInstance(context.instance, context.allocator);
+    if (context.instance) {
+        vkDestroyInstance(context.instance, context.allocator);
+    }
 }
 
 void vulkan_renderer_backend_on_resized(renderer_backend* backend, u16 width, u16 height) {
