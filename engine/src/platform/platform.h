@@ -2,9 +2,11 @@
 
 #include "core/logger.h"
 #include "definitions.h"
+#include <SDL2/SDL.h>
 
 typedef struct platform_state{
     void* internal_state;
+    SDL_Window* window_handle;  // SDL window handle
 } platform_state;
 
 b8 platform_startup(

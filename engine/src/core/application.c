@@ -52,6 +52,10 @@ b8 application_create(game* game_instance){
     event_register(EVENT_CODE_KEY_PRESSED, 0, application_on_key);
     event_register(EVENT_CODE_KEY_RELEASED, 0, application_on_key);
     
+    // Set initial window size
+    app_state.width = game_instance->app_config.start_width;
+    app_state.height = game_instance->app_config.start_height;
+
     if(!platform_startup(&app_state.platform, game_instance->app_config.name, 
                         game_instance->app_config.start_pos_x, game_instance->app_config.start_pos_y, 
                         game_instance->app_config.start_width, game_instance->app_config.start_height)){
@@ -69,7 +73,11 @@ b8 application_create(game* game_instance){
         return FALSE;
     }
 
-    app_state.game_instance->onresize(app_state.game_instance, app_state.width, app_state.height);
+    // Send initial resize event
+    event_context context;
+    context.data.u16[0] = app_state.width;
+    context.data.u16[1] = app_state.height;
+    event_fire(EVENT_CODE_RESIZED, 0, context);
 
     initialized = TRUE;
     return TRUE;
@@ -107,10 +115,6 @@ b8 application_run(){
                 app_state.is_running = FALSE;
                 break;
             }
-            
-            render_packet packet;
-            packet.delta_time = delta;
-            renderer_draw_frame(&packet);
             
             f64 frame_end_time = platform_get_absolute_time();
             f64 frame_elapsed_time = frame_end_time - frame_start_time;

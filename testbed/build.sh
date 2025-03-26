@@ -9,8 +9,8 @@ CFILES=$(find . -type f -name "*.c")
 OUTPUT="testbed"
 CFLAGS="-g -fdeclspec -fPIC -Wall -Werror"
 
-INCLUDES="-Isrc -I../engine/src/"
-LINKERFLAGS="-L../bin/ -lengine -Wl,-rpath,."
+INCLUDES="-I../engine/src -I../engine/src/core -I../engine/src/renderer -Isrc"
+LINKERFLAGS="-L../bin/ -lengine -lm -Wl,-rpath,."
 DEFINITIONS="-D_DEBUG -DKIMPORT"
 
 echo "building $OUTPUT"
