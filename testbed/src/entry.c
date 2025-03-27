@@ -3,11 +3,6 @@
 
 #include <core/kmemory.h>
 
-// Wrapper function to match the game's event handler signature
-b8 game_event_wrapper(game* game_instance, u16 code, void* sender, void* listener_inst, event_context context) {
-    return game_on_event(code, sender, listener_inst, context);
-}
-
 b8 create_game(game* out_game) {
     // Application configuration
     out_game->app_config.start_pos_x = 100;
@@ -21,7 +16,8 @@ b8 create_game(game* out_game) {
     out_game->update = game_update;
     out_game->render = game_render;
     out_game->onresize = game_on_resize;
-    out_game->on_event = game_event_wrapper;
+    out_game->on_key_event = game_on_key;
+
     // Allocate state
     out_game->state = kallocate(sizeof(game_state), MEMORY_TAG_GAME);
 

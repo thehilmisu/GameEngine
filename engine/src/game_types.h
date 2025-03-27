@@ -21,7 +21,7 @@ typedef struct game {
     void (*onresize)(struct game* game_instance, u32 width, u32 height);
 
     // fp to game on event
-    b8 (*on_event)(struct game* game_instance, u16 code, void* sender, void* listener_inst, event_context context);
+    b8 (*on_key_event)(u16 code, void* sender, void* listener_inst, event_context context);
 
     void* state;
 

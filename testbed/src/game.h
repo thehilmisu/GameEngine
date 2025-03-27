@@ -17,7 +17,7 @@ typedef struct game_state {
     f32 rotation_speed;  // Speed of rotation in radians per second
 } game_state;
 
-b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context context);
+b8 game_on_key(u16 code, void* sender, void* listener_inst, event_context context);
 b8 game_initialize(game* game_instance);
 b8 game_update(game* game_instance, f32 delta_time);
 b8 game_render(game* game_instance, f32 delta_time);
