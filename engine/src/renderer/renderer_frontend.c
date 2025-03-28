@@ -10,7 +10,6 @@ struct platform_state;
 
 // Backend render context.
 static renderer_backend* backend = 0;
-render_packet current_packet = {0};  // Make accessible to other files
 
 b8 renderer_initialize(const char* application_name, struct platform_state* plat_state) {
     backend = kallocate(sizeof(renderer_backend), MEMORY_TAG_RENDERER);
@@ -48,23 +47,23 @@ void renderer_shutdown() {
     }
 }
 
-b8 renderer_begin_frame(f32 delta_time) {
+b8 renderer_begin_frame(render_packet* packet, f32 delta_time) {
     if (!backend) {
         ERROR("Renderer backend not initialized!");
         return FALSE;
     }
     // Reset the current packet
-    kzero_memory(&current_packet, sizeof(render_packet));
-    current_packet.delta_time = delta_time;
-    return backend->begin_frame(backend, &current_packet);
+    kzero_memory(&packet, sizeof(render_packet));
+    packet->delta_time = delta_time;
+    return backend->begin_frame(backend, packet);
 }
 
-b8 renderer_end_frame(f32 delta_time) {
+b8 renderer_end_frame(render_packet* packet) {
     if (!backend) {
         ERROR("Renderer backend not initialized!");
         return FALSE;
     }
-    b8 result = backend->end_frame(backend, &current_packet);
+    b8 result = backend->end_frame(backend, packet);
     backend->frame_number++;
     return result;
 }
@@ -74,6 +73,7 @@ b8 renderer_draw_frame(render_packet* packet) {
     
     // Begin frame
     if (!backend->begin_frame(backend, packet)) {
+        ERROR("Renderer backend failed to begin frame!");
         return FALSE;
     }
     
@@ -91,15 +91,13 @@ b8 renderer_draw_frame(render_packet* packet) {
     // Draw mesh commands
     if (packet->mesh_commands.commands && packet->mesh_commands.count > 0) {
         for (u32 i = 0; i < packet->mesh_commands.count; i++) {
-            mesh* m = backend->get_mesh(packet->mesh_commands.commands[i].mesh_id);
-            if (m) {
-                backend->draw_mesh(m);
-            }
+            backend->draw_mesh(packet->mesh_commands.commands[i].mesh);
         }
     }
     
     // End frame
     if (!backend->end_frame(backend, packet)) {
+        ERROR("Renderer backend failed to end frame!");
         return FALSE;
     }
     

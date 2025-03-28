@@ -67,7 +67,7 @@ typedef struct mesh_command {
     vec3 rotation;
     vec3 scale;
     vec4 color;
-    u32 mesh_id;
+    mesh* mesh;
 } mesh_command;
 
 // Render packet structure
@@ -96,7 +96,7 @@ typedef struct renderer_backend {
     void (*resized)(struct renderer_backend* backend, u16 width, u16 height);
     b8 (*begin_frame)(struct renderer_backend* backend, render_packet* packet);
     b8 (*end_frame)(struct renderer_backend* backend, render_packet* packet);
-
+    b8 (*draw_frame)(struct renderer_backend* backend, render_packet* packet);
     // Mesh functions
     mesh* (*create_mesh)(const vertex* vertices, u32 vertex_count);
     void (*destroy_mesh)(mesh* m);

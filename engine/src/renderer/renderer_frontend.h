@@ -13,8 +13,8 @@ void renderer_shutdown();
  
 void renderer_on_resized(u16 width, u16 height);
  
-b8 renderer_begin_frame(f32 delta_time);
-b8 renderer_end_frame(f32 delta_time);
+b8 renderer_begin_frame(render_packet* packet, f32 delta_time);
+b8 renderer_end_frame(render_packet* packet);
 b8 renderer_draw_frame(render_packet* packet);
 
 // Mesh functions

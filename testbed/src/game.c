@@ -71,8 +71,10 @@ b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context cont
             break;
         }
         case EVENT_CODE_MOUSE_WHEEL: {
-            u16 z_delta = context.data.u16[0];
-            INFO("Mouse wheel: %d", z_delta);
+            u16 x_delta = context.data.u16[0];
+            u16 y_delta = context.data.u16[1];
+            u16 z_delta = context.data.u16[2];
+            INFO("Mouse wheel: %d, %d, %d", x_delta, y_delta, z_delta);
             break;
         }   
         case EVENT_CODE_BUTTON_PRESSED: {
@@ -123,15 +125,15 @@ b8 game_initialize(game* game_instance) {
     // Create a larger triangle mesh in 3D space
     vertex vertices[] = {
         {
-            .position = (vec3){{0.0f, 10.0f, 0.0f}},  // Top vertex - much higher
+            .position = (vec3){{0.0f, 3.0f, 0.0f}},  // Top vertex - much higher
             .color = (vec4){{1.0f, 0.2f, 0.2f, 1.0f}}  // Brighter red
         },
         {
-            .position = (vec3){{-10.0f, -10.0f, 0.0f}},  // Bottom left - much farther left and down
+            .position = (vec3){{-3.0f, -3.0f, 0.0f}},  // Bottom left - much farther left and down
             .color = (vec4){{0.2f, 1.0f, 0.2f, 1.0f}}  // Brighter green
         },
         {
-            .position = (vec3){{10.0f, -10.0f, 0.0f}},  // Bottom right - much farther right and down
+            .position = (vec3){{3.0f, -3.0f, 0.0f}},  // Bottom right - much farther right and down
             .color = (vec4){{0.2f, 0.2f, 1.0f, 1.0f}}  // Brighter blue
         }
     };
@@ -141,7 +143,6 @@ b8 game_initialize(game* game_instance) {
         ERROR("Failed to create triangle mesh!");
         return FALSE;
     }
-    state->triangle_mesh_id = state->triangle_mesh->id;
 
     return TRUE;
 }
@@ -154,10 +155,10 @@ b8 game_update(game* game_instance, f32 delta_time) {
 
     // Update rotation with variable speed
     state->rotation += delta_time * state->rotation_speed;
-    if (state->rotation > 2.0f * M_PI) {
-        state->rotation -= 2.0f * M_PI;
-    }
-
+    // INFO("Rotation: %.2f", state->rotation);
+    // if (state->rotation > 2.0f * M_PI) {
+    //     state->rotation -= 2.0f * M_PI;
+    // }
 
     return TRUE;
 }
@@ -166,14 +167,12 @@ b8 game_render(game* game_instance, f32 delta_time) {
     game_state* state = (game_state*)game_instance->state;
     if (!state) return FALSE;
 
-    // Begin frame
-    if (!renderer_begin_frame(delta_time)) {
-        return FALSE;
-    }
-
     // Set camera position in the render packet
-    extern render_packet current_packet;  // Access the render packet from renderer_frontend.c
+    render_packet current_packet;  
     current_packet.camera_position = state->camera_position;
+    
+    // Set rotation value in camera_rotation.y for the shader
+    state->camera_rotation.y = state->rotation;
     current_packet.camera_rotation = state->camera_rotation;
     
     // Set mesh rotation in render packet
@@ -182,11 +181,11 @@ b8 game_render(game* game_instance, f32 delta_time) {
         .rotation = {0.0f, state->rotation, 0.0f},
         .scale = {1.0f, 1.0f, 1.0f},
         .color = {1.0f, 1.0f, 1.0f, 1.0f},
-        .mesh_id = state->triangle_mesh_id
+        .mesh = state->triangle_mesh
     };
     current_packet.mesh_commands.commands = &mesh_cmd;
     current_packet.mesh_commands.count = 1;
-
+    
     // Draw text directly (bypassing the packet)
     text_command text_cmd1 = {
         .text = "Hello, World!",
@@ -194,40 +193,25 @@ b8 game_render(game* game_instance, f32 delta_time) {
         .color = (vec4){1.0f, 1.0f, 1.0f, 1.0f},
         .scale = 1.0f
     };
-    renderer_draw_text(state->default_font, text_cmd1.text, text_cmd1.position, text_cmd1.color, text_cmd1.scale);
+    current_packet.text_commands.commands = &text_cmd1;
+    current_packet.text_commands.count = 1;
     
-    text_command text_cmd2 = {
-        .text = "Press ESC to exit",
-        .position = (vec2){50.0f, 110.0f},  // Position below first text
-        .color = (vec4){1.0f, 1.0f, 0.0f, 1.0f},  // Yellow color for contrast
-        .scale = 1.0f
-    };
-    renderer_draw_text(state->default_font, text_cmd2.text, text_cmd2.position, text_cmd2.color, text_cmd2.scale);
-    
-    // Draw mesh directly instead of relying on the packet
     if (state->triangle_mesh) {
-        renderer_draw_mesh(state->triangle_mesh);
+        renderer_draw_frame(&current_packet);
     }
-    
-    // End frame
-    if (!renderer_end_frame(delta_time)) {
-        return FALSE;
-    }
-
+   
     return TRUE;
 }
 
 void game_on_resize(game* game_instance, u32 width, u32 height) {
     game_state* state = (game_state*)game_instance->state;
     if (!state) return;
-
     // Handle window resize event
 }
 
 void game_shutdown(game* game_instance) {
     game_state* state = (game_state*)game_instance->state;
     if (!state) return;
-
     // Unregister from events
     event_unregister(EVENT_CODE_KEY_PRESSED, state, game_on_event);
     event_unregister(EVENT_CODE_KEY_RELEASED, state, game_on_event);

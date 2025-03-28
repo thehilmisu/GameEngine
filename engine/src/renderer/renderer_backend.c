@@ -15,6 +15,10 @@ b8 renderer_backend_create(renderer_backend_type type, struct platform_state* pl
             out_renderer_backend->create_mesh = opengl_renderer_create_mesh;
             out_renderer_backend->destroy_mesh = opengl_renderer_destroy_mesh;
             out_renderer_backend->draw_mesh = opengl_renderer_draw_mesh;
+            out_renderer_backend->create_font = opengl_renderer_create_font;
+            out_renderer_backend->destroy_font = opengl_renderer_destroy_font;
+            out_renderer_backend->draw_text = opengl_renderer_draw_text;
+            out_renderer_backend->draw_frame = opengl_renderer_draw_frame;
             break;
         default:
             ERROR("Unsupported renderer backend type: %d", type);

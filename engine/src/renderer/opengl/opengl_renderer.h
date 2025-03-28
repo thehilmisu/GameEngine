@@ -30,7 +30,7 @@ void opengl_renderer_backend_shutdown(renderer_backend* backend);
 void opengl_renderer_backend_resized(renderer_backend* backend, u16 width, u16 height);
 b8 opengl_renderer_backend_begin_frame(renderer_backend* backend, render_packet* packet);
 b8 opengl_renderer_backend_end_frame(renderer_backend* backend, render_packet* packet);
-
+b8 opengl_renderer_draw_frame(renderer_backend* backend, render_packet* packet);
 // Mesh functions
 mesh* opengl_renderer_create_mesh(const vertex* vertices, u32 vertex_count);
 void opengl_renderer_destroy_mesh(mesh* m);

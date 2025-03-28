@@ -16,6 +16,7 @@ static const char* vertex_shader_source =
     "layout (location = 1) in vec4 aColor;\n"
     "out vec4 Color;\n"
     "uniform vec3 cameraPos;\n"
+    "uniform float rotation;\n"
     "void main() {\n"
     "    vec3 pos = aPos;\n"
     "    // Apply camera position to move objects relative to camera\n"
@@ -29,6 +30,14 @@ static const char* vertex_shader_source =
     "    // Create perspective effect manually\n"
     "    float scale_factor = 5.0;\n"
     "    float perspective = 10.0 / (10.0 + z_pos);\n"
+    "    float rotation_radians = rotation * 3.14159 / 180.0;\n"
+    "    mat4 rotation_matrix = mat4(\n"
+    "        cos(rotation_radians), -sin(rotation_radians), 0.0, 0.0,\n"
+    "        sin(rotation_radians), cos(rotation_radians), 0.0, 0.0,\n"
+    "        0.0, 0.0, 1.0, 0.0,\n"
+    "        0.0, 0.0, 0.0, 1.0\n"
+    "    );\n"
+    "    pos = (rotation_matrix * vec4(pos, 1.0)).xyz;\n"
     "    gl_Position = vec4(pos.x * perspective / scale_factor, \n"
     "                       pos.y * perspective / scale_factor, \n"
     "                       pos.z / 20.0, \n"
@@ -335,9 +344,18 @@ void opengl_renderer_draw_mesh(mesh* m) {
         glUniform3f(camera_pos_loc, 
                    state->current_packet->camera_position.x,
                    state->current_packet->camera_position.y,
-                   state->current_packet->camera_position.z);
+                   state->current_packet->camera_position.z
+                   );
+        
+        // Set the rotation uniform - use Y rotation from camera rotation
+        GLint rotation_loc = glGetUniformLocation(state->shader_program, "rotation");
+        glUniform1f(rotation_loc, state->current_packet->camera_rotation.y);
     } else {
         glUniform3f(camera_pos_loc, 0.0f, 0.0f, 0.0f);
+        
+        // Default rotation value
+        GLint rotation_loc = glGetUniformLocation(state->shader_program, "rotation");
+        glUniform1f(rotation_loc, 0.0f);
     }
     
     // Bind VAO and draw
@@ -481,6 +499,20 @@ font* opengl_renderer_create_font(const char* font_path, u32 font_size) {
     return f;
 }
 
+b8 opengl_renderer_draw_frame(renderer_backend* backend, render_packet* packet) {
+    opengl_renderer_state* state = (opengl_renderer_state*)backend->internal_state;
+    if (!state) return FALSE;
+
+    // Draw meshes  
+    if (packet->mesh_commands.commands && packet->mesh_commands.count > 0) {
+        for (u32 i = 0; i < packet->mesh_commands.count; i++) {
+            opengl_renderer_draw_mesh(packet->mesh_commands.commands[i].mesh);
+        }
+    }
+    
+    return TRUE;
+}
+
 void opengl_renderer_destroy_font(font* f) {
     if (!f) return;
 
@@ -502,7 +534,7 @@ void opengl_renderer_destroy_font(font* f) {
 
 void opengl_renderer_draw_text(font* f, const char* text, vec2 position, vec4 color, f32 scale) {
     if (!f || !text) {
-        ERROR("Cannot draw text, font or text is NULL");
+        // ERROR("Cannot draw text, font or text is NULL");
         return;
     }
     
@@ -541,7 +573,7 @@ void opengl_renderer_draw_text(font* f, const char* text, vec2 position, vec4 co
     f32 x_pos = position.x;
     f32 y_pos = position.y;
     
-    INFO("Rendering text: '%s' at position (%.2f, %.2f)", text, x_pos, y_pos);
+    // INFO("Rendering text: '%s' at position (%.2f, %.2f)", text, x_pos, y_pos);
     
     // Draw each character
     for (const char* c = text; *c; c++) {
