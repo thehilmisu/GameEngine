@@ -11,6 +11,7 @@
 
 typedef struct game_state {
     f32 delta_time;
+    f32 fps;
     vec4 clear_color;  // Color to clear the screen with
     mesh* triangle_mesh;
     u32 triangle_mesh_id;

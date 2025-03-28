@@ -125,7 +125,8 @@ b8 application_run(){
             {
                 u64 remaining_ms = (remaining_seconds * 1000);
 
-                b8 limit_frames = FALSE;
+                // Limit frame rate to avoid over cpu usage
+                b8 limit_frames = TRUE;
                 if(remaining_ms > 0 && limit_frames){
                     platform_sleep(remaining_ms - 1);
                 }

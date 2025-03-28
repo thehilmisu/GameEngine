@@ -100,6 +100,7 @@ b8 game_initialize(game* game_instance) {
     state->clear_color = (vec4){{0.0f, 0.0f, 0.2f, 1.0f}};
     state->rotation = 0.0f;
     state->rotation_speed = 2.0f;  // Initial rotation speed
+    state->fps = 0.0f;
 
     // Initialize camera
     state->camera_position = (vec3){{0.0f, 0.0f, 3.0f}};
@@ -160,7 +161,7 @@ b8 game_update(game* game_instance, f32 delta_time) {
     if (!state) return FALSE;
 
     state->delta_time = delta_time;
-
+    state->fps = 1.0f / delta_time;
     // Update rotation with variable speed
     state->rotation += delta_time * state->rotation_speed;
     // INFO("Rotation: %.2f", state->rotation);
@@ -194,11 +195,14 @@ b8 game_render(game* game_instance, f32 delta_time) {
     current_packet.mesh_commands.commands = &mesh_cmd;
     current_packet.mesh_commands.count = 1;
     
+    // Display FPS
+    char fps_text[10];
+    snprintf(fps_text, sizeof(fps_text), "FPS: %.2f", state->fps);
     text_command text_cmd1 = {
-        .text = "Hello, World!",
+        .text = fps_text,
         .position = (vec2){50.0f, 50.0f},  // Position near top-left corner
         .color = (vec4){1.0f, 1.0f, 1.0f, 1.0f},
-        .scale = 1.0f,
+        .scale = 0.5f,
         .font = state->default_font
     };
     current_packet.text_commands.commands = &text_cmd1;
