@@ -9,6 +9,11 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+// Forward declare check functions
+void check_shader_error(u32 shader, const char* type);
+void check_program_error(u32 program);
+void check_gl_error(const char* op);
+
 // Vertex shader source
 static const char* vertex_shader_source = 
     "#version 330 core\n"
@@ -78,18 +83,24 @@ static const char* text_fragment_shader_source =
 "out vec4 FragColor;\n"
 "uniform sampler2D textTexture;\n"
 "void main() {\n"
+"   // Sample the texture for alpha value\n"
 "   float alpha = texture(textTexture, TexCoords).r;\n"
-"   // Only render pixels with sufficient alpha\n"
-"   if (alpha < 0.01) discard;\n"
-"   FragColor = vec4(Color.rgb, alpha * Color.a);\n"
+"   if (alpha < 0.1) discard;\n"
+"   FragColor = vec4(Color.rgb, alpha);\n"
 "}\n";
 
 static u32 next_mesh_id = 1;
 static opengl_renderer_state* global_renderer_state = NULL;
 
-// Forward declare check functions
-void check_shader_error(u32 shader, const char* type);
-void check_program_error(u32 program);
+// Paths to common system fonts for fallback
+static const char* fallback_font_paths[] = {
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",  // Linux (Debian/Ubuntu)
+    "/usr/share/fonts/TTF/DejaVuSans.ttf",                           // Linux (Arch/Manjaro)
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",                        // Linux (Fedora)
+    "/Library/Fonts/Arial.ttf",                                      // macOS
+    "C:\\Windows\\Fonts\\arial.ttf",                                 // Windows
+    NULL
+};
 
 b8 opengl_renderer_backend_initialize(renderer_backend* backend, const char* application_name, struct platform_state* plat_state) {
     opengl_renderer_state* state = kallocate(sizeof(opengl_renderer_state), MEMORY_TAG_RENDERER);
@@ -381,6 +392,9 @@ font* opengl_renderer_create_font(const char* font_path, u32 font_size) {
     
     font* f = kallocate(sizeof(font), MEMORY_TAG_RENDERER);
     f->id = next_mesh_id++;
+    
+    // Zero out the character data to start with
+    kzero_memory(f->characters, sizeof(font_character) * 128);
 
     // Load font face
     FT_Face face;
@@ -442,42 +456,52 @@ font* opengl_renderer_create_font(const char* font_path, u32 font_size) {
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
 
-    // Load character textures
-    for (u8 c = 0; c < 128; c++) {
-        if (FT_Load_Char(face, c, FT_LOAD_RENDER)) {
-            ERROR("Failed to load character '%c' (ASCII %d)", c, c);
+    // Load ASCII printable characters (32-127)
+    // Use FT_LOAD_RENDER to get bitmap data
+    for (u8 c = 32; c < 128; c++) {
+        // Load glyph with render flag
+        error = FT_Load_Char(face, c, FT_LOAD_RENDER);
+        if (error) {
+            ERROR("Failed to load character '%c' (ASCII %d): %d", c, c, error);
             continue;
         }
-
+        
+        if (face->glyph->bitmap.width == 0 || face->glyph->bitmap.rows == 0) {
+            // For space or empty glyphs, just store metrics
+            f->characters[c].width = 0;
+            f->characters[c].height = 0;
+            f->characters[c].bearing_x = face->glyph->bitmap_left;
+            f->characters[c].bearing_y = face->glyph->bitmap_top;
+            f->characters[c].advance = face->glyph->advance.x;
+            f->characters[c].texture_id = 0;  // No texture
+            
+            if (c == ' ') {
+                INFO("Space character metrics: advance=%d", f->characters[c].advance >> 6);
+            }
+            continue;
+        }
+        
         // Generate texture
         GLuint texture;
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);
         
-        // If empty glyph or space, create a 1x1 empty texture
-        if (face->glyph->bitmap.width == 0 || face->glyph->bitmap.rows == 0) {
-            unsigned char data = 0;
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, 1, 1, 0, GL_RED, GL_UNSIGNED_BYTE, &data);
-            INFO("Character '%c' (ASCII %d) has empty bitmap, creating placeholder", c, c);
-        } else {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, face->glyph->bitmap.width, face->glyph->bitmap.rows, 0, GL_RED, GL_UNSIGNED_BYTE, face->glyph->bitmap.buffer);
-            // DEBUG log for successful glyph loading
-            if (c >= 32 && c <= 126) { // Only log printable ASCII
-                INFO("Loaded glyph for '%c': size=%dx%d, bearing=(%d,%d), advance=%ld", 
-                     c, 
-                     face->glyph->bitmap.width, 
-                     face->glyph->bitmap.rows,
-                     face->glyph->bitmap_left,
-                     face->glyph->bitmap_top,
-                     face->glyph->advance.x >> 6);
-            }
-        }
-        
+        // Set texture parameters first
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
+        
+        // Copy bitmap data and upload to texture
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // Important for bitmap fonts!
+        
+        // Upload bitmap directly - FreeType stores it as a simple grayscale
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED,
+                    face->glyph->bitmap.width,
+                    face->glyph->bitmap.rows,
+                    0, GL_RED, GL_UNSIGNED_BYTE,
+                    face->glyph->bitmap.buffer);
+        
         // Store character info
         f->characters[c].texture_id = texture;
         f->characters[c].width = face->glyph->bitmap.width;
@@ -485,6 +509,16 @@ font* opengl_renderer_create_font(const char* font_path, u32 font_size) {
         f->characters[c].bearing_x = face->glyph->bitmap_left;
         f->characters[c].bearing_y = face->glyph->bitmap_top;
         f->characters[c].advance = face->glyph->advance.x;
+        
+        if (c >= 'A' && c <= 'Z') {
+            INFO("Character '%c' metrics: size=%dx%d, bearing=(%d,%d), advance=%d",
+                c,
+                f->characters[c].width,
+                f->characters[c].height,
+                f->characters[c].bearing_x,
+                f->characters[c].bearing_y,
+                f->characters[c].advance >> 6);
+        }
     }
 
     // Unbind textures and clean up
@@ -499,17 +533,76 @@ font* opengl_renderer_create_font(const char* font_path, u32 font_size) {
     return f;
 }
 
+// Try to create a font from a list of fallback paths
+font* opengl_renderer_create_fallback_font(u32 font_size) {
+    opengl_renderer_state* state = (opengl_renderer_state*)global_renderer_state;
+    if (!state) return NULL;
+    
+    // Try each fallback font path
+    for (int i = 0; fallback_font_paths[i] != NULL; i++) {
+        const char* font_path = fallback_font_paths[i];
+        INFO("Trying fallback font: %s", font_path);
+        
+        // Check if file exists before attempting to load
+        FILE* file = fopen(font_path, "r");
+        if (file) {
+            fclose(file);
+            
+            // Try to create the font
+            font* f = opengl_renderer_create_font(font_path, font_size);
+            if (f) {
+                INFO("Successfully loaded fallback font: %s", font_path);
+                return f;
+            }
+        }
+    }
+    
+    ERROR("Failed to load any fallback fonts");
+    return NULL;
+}
+
 b8 opengl_renderer_draw_frame(renderer_backend* backend, render_packet* packet) {
     opengl_renderer_state* state = (opengl_renderer_state*)backend->internal_state;
     if (!state) return FALSE;
 
-    // Draw meshes  
+    // Check if frame has already started
+    check_gl_error("before drawing frame");
+
+    // Draw meshes first
     if (packet->mesh_commands.commands && packet->mesh_commands.count > 0) {
+        // Enable depth testing for 3D objects
+        glEnable(GL_DEPTH_TEST);
         for (u32 i = 0; i < packet->mesh_commands.count; i++) {
             opengl_renderer_draw_mesh(packet->mesh_commands.commands[i].mesh);
         }
     }
     
+    // Draw text commands last, so they appear on top
+    if (packet->text_commands.commands && packet->text_commands.count > 0) {
+        // Disable depth testing for UI elements
+        glDisable(GL_DEPTH_TEST);
+        
+        // INFO("Processing %u text commands", packet->text_commands.count);
+        for (u32 i = 0; i < packet->text_commands.count; i++) {
+            // INFO("Drawing text '%s' at (%.2f,%.2f)", 
+            //      packet->text_commands.commands[i].text,
+            //      packet->text_commands.commands[i].position.x,
+            //      packet->text_commands.commands[i].position.y);
+                 
+            opengl_renderer_draw_text(
+                packet->text_commands.commands[i].font,
+                packet->text_commands.commands[i].text,
+                packet->text_commands.commands[i].position,
+                packet->text_commands.commands[i].color,
+                packet->text_commands.commands[i].scale
+            );
+        }
+        
+        // Restore depth testing
+        glEnable(GL_DEPTH_TEST);
+    }
+    
+    check_gl_error("after drawing frame");
     return TRUE;
 }
 
@@ -532,9 +625,26 @@ void opengl_renderer_destroy_font(font* f) {
     kfree(f, sizeof(font), MEMORY_TAG_RENDERER);
 }
 
+// Helper function to check for OpenGL errors
+void check_gl_error(const char* op) {
+    GLenum error;
+    while((error = glGetError()) != GL_NO_ERROR) {
+        const char* error_str = "Unknown";
+        switch(error) {
+            case GL_INVALID_ENUM: error_str = "GL_INVALID_ENUM"; break;
+            case GL_INVALID_VALUE: error_str = "GL_INVALID_VALUE"; break;
+            case GL_INVALID_OPERATION: error_str = "GL_INVALID_OPERATION"; break;
+            case GL_STACK_OVERFLOW: error_str = "GL_STACK_OVERFLOW"; break;
+            case GL_STACK_UNDERFLOW: error_str = "GL_STACK_UNDERFLOW"; break;
+            case GL_OUT_OF_MEMORY: error_str = "GL_OUT_OF_MEMORY"; break;
+            case GL_INVALID_FRAMEBUFFER_OPERATION: error_str = "GL_INVALID_FRAMEBUFFER_OPERATION"; break;
+        }
+        ERROR("OpenGL error after %s: %s (0x%x)", op, error_str, error);
+    }
+}
+
 void opengl_renderer_draw_text(font* f, const char* text, vec2 position, vec4 color, f32 scale) {
     if (!f || !text) {
-        // ERROR("Cannot draw text, font or text is NULL");
         return;
     }
     
@@ -544,91 +654,104 @@ void opengl_renderer_draw_text(font* f, const char* text, vec2 position, vec4 co
         return;
     }
 
-    // Enable blending for text
+    // Clear settings that could interfere
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    
+    // Force blending for text
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // Use text shader program
-    glUseProgram(state->text_shader_program);
+    // Use font's shader program
+    glUseProgram(f->shader_program);
     
     // Get window size for proper projection matrix
     int width, height;
     SDL_GetWindowSize(state->window, &width, &height);
     
-    // Create orthographic projection for 2D rendering (screen space)
-    mat4 projection = mat4_orthographic(0.0f, (f32)width, (f32)height, 0.0f, -1.0f, 1.0f);
+    // Create orthographic projection matrix (screen space)
+    mat4 projection = {
+        2.0f/width, 0.0f, 0.0f, 0.0f,
+        0.0f, -2.0f/height, 0.0f, 0.0f, 
+        0.0f, 0.0f, 1.0f, 0.0f,
+        -1.0f, 1.0f, 0.0f, 1.0f
+    };
     
     // Set projection matrix uniform
-    GLint projection_loc = glGetUniformLocation(state->text_shader_program, "projection");
+    GLint projection_loc = glGetUniformLocation(f->shader_program, "projection");
     glUniformMatrix4fv(projection_loc, 1, GL_FALSE, (const GLfloat*)&projection);
     
     // Set up texture unit
-    GLint texture_loc = glGetUniformLocation(state->text_shader_program, "textTexture");
+    GLint texture_loc = glGetUniformLocation(f->shader_program, "textTexture");
     glUniform1i(texture_loc, 0);
     glActiveTexture(GL_TEXTURE0);
     
-    // Bind VAO
-    glBindVertexArray(state->text_vao);
+    // Bind font's VAO
+    glBindVertexArray(f->vao);
     
-    f32 x_pos = position.x;
-    f32 y_pos = position.y;
+    // Starting position for rendering
+    f32 x = position.x;
+    f32 y = position.y;
     
-    // INFO("Rendering text: '%s' at position (%.2f, %.2f)", text, x_pos, y_pos);
-    
-    // Draw each character
+    // For each character in the string
     for (const char* c = text; *c; c++) {
-        // Skip if character is out of ASCII range
-        if ((unsigned char)*c >= 128) continue;
+        // Get character index
+        u8 char_index = (u8)*c;
+        if (char_index >= 128) continue; // Skip non-ASCII
         
-        font_character character = f->characters[(unsigned char)*c];
-        if (character.texture_id == 0) {
-            INFO("Character '%c' (ASCII %d) has no texture, skipping", *c, (unsigned char)*c);
-            x_pos += (character.advance >> 6) * scale;
-            continue;
+        // Get character info
+        font_character* ch = &f->characters[char_index];
+        if (ch->texture_id == 0) {
+            x += (ch->advance >> 6) * scale; // Advance cursor
+            continue; // Skip characters with no texture (e.g., spaces)
         }
         
         // Calculate position and size
-        f32 xpos = x_pos + character.bearing_x * scale;
-        f32 ypos = y_pos - (character.height - character.bearing_y) * scale;
-        f32 w = character.width * scale;
-        f32 h = character.height * scale;
+        f32 xpos = x + ch->bearing_x * scale;
+        f32 ypos = y - ch->bearing_y * scale;  // Position based on the baseline
+        f32 w = ch->width * scale;
+        f32 h = ch->height * scale;
         
-        // Skip rendering if width or height is zero
+        // Skip if zero size
         if (w <= 0 || h <= 0) {
-            x_pos += (character.advance >> 6) * scale;
+            x += (ch->advance >> 6) * scale; // Advance cursor
             continue;
         }
         
-        // Update VBO for each character
+        // Define vertices for this character with corrected texture coordinates
+        // Note: Texture coordinates are flipped vertically to correct upside-down rendering
         text_vertex vertices[6] = {
-            { {xpos,     ypos + h, 0.0f}, {0.0f, 0.0f}, color },
-            { {xpos,     ypos,     0.0f}, {0.0f, 1.0f}, color },
-            { {xpos + w, ypos,     0.0f}, {1.0f, 1.0f}, color },
+            // First triangle - top-left, bottom-left, bottom-right
+            { {xpos,     ypos + h, 0.0f}, {0.0f, 1.0f}, color }, // top-left
+            { {xpos,     ypos,     0.0f}, {0.0f, 0.0f}, color }, // bottom-left
+            { {xpos + w, ypos,     0.0f}, {1.0f, 0.0f}, color }, // bottom-right
             
-            { {xpos,     ypos + h, 0.0f}, {0.0f, 0.0f}, color },
-            { {xpos + w, ypos,     0.0f}, {1.0f, 1.0f}, color },
-            { {xpos + w, ypos + h, 0.0f}, {1.0f, 0.0f}, color }
+            // Second triangle - top-left, bottom-right, top-right
+            { {xpos,     ypos + h, 0.0f}, {0.0f, 1.0f}, color }, // top-left
+            { {xpos + w, ypos,     0.0f}, {1.0f, 0.0f}, color }, // bottom-right
+            { {xpos + w, ypos + h, 0.0f}, {1.0f, 1.0f}, color }  // top-right
         };
         
         // Bind character texture
-        glBindTexture(GL_TEXTURE_2D, character.texture_id);
+        glBindTexture(GL_TEXTURE_2D, ch->texture_id);
         
-        // Update VBO
-        glBindBuffer(GL_ARRAY_BUFFER, state->text_vbo);
+        // Update buffer
+        glBindBuffer(GL_ARRAY_BUFFER, f->vbo);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
-        // Draw character
+        // Draw the character quad
         glDrawArrays(GL_TRIANGLES, 0, 6);
         
-        // Advance cursor for next glyph
-        x_pos += (character.advance >> 6) * scale;
+        // Advance cursor for next character
+        x += (ch->advance >> 6) * scale;
     }
     
     // Clean up
     glBindVertexArray(0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
 }
 
 // Shader error checking functions

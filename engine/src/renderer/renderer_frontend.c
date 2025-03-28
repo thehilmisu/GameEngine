@@ -26,6 +26,7 @@ b8 renderer_initialize(const char* application_name, struct platform_state* plat
     backend->destroy_mesh = opengl_renderer_destroy_mesh;
     backend->draw_mesh = opengl_renderer_draw_mesh;
     backend->create_font = opengl_renderer_create_font;
+    backend->create_fallback_font = opengl_renderer_create_fallback_font;
     backend->destroy_font = opengl_renderer_destroy_font;
     backend->draw_text = opengl_renderer_draw_text;
 
@@ -80,12 +81,25 @@ b8 renderer_draw_frame(render_packet* packet) {
     // Draw text commands
     if (packet->text_commands.commands && packet->text_commands.count > 0) {
         for (u32 i = 0; i < packet->text_commands.count; i++) {
-            backend->draw_text(backend->default_font, 
-                             packet->text_commands.commands[i].text,
-                             packet->text_commands.commands[i].position,
-                             packet->text_commands.commands[i].color,
-                             packet->text_commands.commands[i].scale);
+            // Use INFO for critical debugging info, but not all of it to avoid spam
+            // INFO("Drawing text: %s", packet->text_commands.commands[i].text);                                                                           
+            // INFO("Position: %f, %f", packet->text_commands.commands[i].position.x, packet->text_commands.commands[i].position.y);
+            // INFO("Color: %f, %f, %f, %f", packet->text_commands.commands[i].color.x, packet->text_commands.commands[i].color.y, packet->text_commands.commands[i].color.z, packet->text_commands.commands[i].color.w);
+            // INFO("Scale: %f", packet->text_commands.commands[i].scale);
+            // INFO("Font pointer: %p", packet->text_commands.commands[i].font);
+            
+            if (packet->text_commands.commands[i].font) {
+                backend->draw_text(packet->text_commands.commands[i].font, 
+                                 packet->text_commands.commands[i].text,
+                                 packet->text_commands.commands[i].position,
+                                 packet->text_commands.commands[i].color,
+                                 packet->text_commands.commands[i].scale);
+            } else {
+                ERROR("Attempted to draw text with NULL font");
+            }
         }
+    } else {
+        INFO("No text commands to process");
     }
     
     // Draw mesh commands
@@ -143,6 +157,14 @@ font* renderer_create_font(const char* font_path, u32 font_size) {
         return NULL;
     }
     return backend->create_font(font_path, font_size);
+}
+
+font* renderer_create_fallback_font(u32 font_size) {
+    if (!backend) {
+        ERROR("Renderer backend not initialized!");
+        return NULL;
+    }
+    return backend->create_fallback_font(font_size);
 }
 
 void renderer_destroy_font(font* f) {

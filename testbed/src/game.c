@@ -108,10 +108,15 @@ b8 game_initialize(game* game_instance) {
     state->last_mouse_y = 0;
 
     // Load default font
-    state->default_font = renderer_create_font("assets/fonts/Quicksand-Regular.ttf", 48);
+    state->default_font = renderer_create_font("assets/fonts/NotoMono-Regular.ttf", 48);
     if (!state->default_font) {
-        ERROR("Failed to load default font!");
-        return FALSE;
+        WARN("Failed to load primary font, trying fallback font...");
+        state->default_font = renderer_create_fallback_font(48);
+        if (!state->default_font) {
+            ERROR("Failed to load fallback font!");
+            return FALSE;
+        }
+        INFO("Fallback font loaded successfully");
     }
 
     // Register for keyboard and mouse events
@@ -122,7 +127,8 @@ b8 game_initialize(game* game_instance) {
     event_register(EVENT_CODE_BUTTON_PRESSED, state, game_on_event);
     event_register(EVENT_CODE_BUTTON_RELEASED, state, game_on_event);
 
-    // Create a larger triangle mesh in 3D space
+    //TODO: Move this to a separate function
+    // Triangle Vertices
     vertex vertices[] = {
         {
             .position = (vec3){{0.0f, 3.0f, 0.0f}},  // Top vertex - much higher
@@ -138,11 +144,13 @@ b8 game_initialize(game* game_instance) {
         }
     };
 
+    // Create Triangle mesh 
     state->triangle_mesh = renderer_create_mesh(vertices, 3);
     if (!state->triangle_mesh) {
         ERROR("Failed to create triangle mesh!");
         return FALSE;
     }
+    ///////////////////////////////////////////////////////////////////////
 
     return TRUE;
 }
@@ -186,12 +194,12 @@ b8 game_render(game* game_instance, f32 delta_time) {
     current_packet.mesh_commands.commands = &mesh_cmd;
     current_packet.mesh_commands.count = 1;
     
-    // Draw text directly (bypassing the packet)
     text_command text_cmd1 = {
         .text = "Hello, World!",
         .position = (vec2){50.0f, 50.0f},  // Position near top-left corner
         .color = (vec4){1.0f, 1.0f, 1.0f, 1.0f},
-        .scale = 1.0f
+        .scale = 1.0f,
+        .font = state->default_font
     };
     current_packet.text_commands.commands = &text_cmd1;
     current_packet.text_commands.count = 1;

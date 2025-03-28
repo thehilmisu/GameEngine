@@ -60,6 +60,7 @@ typedef struct text_command {
     vec2 position;
     vec4 color;
     f32 scale;
+    font* font;
 } text_command;
 
 typedef struct mesh_command {
@@ -97,6 +98,7 @@ typedef struct renderer_backend {
     b8 (*begin_frame)(struct renderer_backend* backend, render_packet* packet);
     b8 (*end_frame)(struct renderer_backend* backend, render_packet* packet);
     b8 (*draw_frame)(struct renderer_backend* backend, render_packet* packet);
+
     // Mesh functions
     mesh* (*create_mesh)(const vertex* vertices, u32 vertex_count);
     void (*destroy_mesh)(mesh* m);
@@ -105,6 +107,7 @@ typedef struct renderer_backend {
 
     // Text functions
     font* (*create_font)(const char* font_path, u32 font_size);
+    font* (*create_fallback_font)(u32 font_size);
     void (*destroy_font)(font* f);
     void (*draw_text)(font* f, const char* text, vec2 position, vec4 color, f32 scale);
 } renderer_backend;
