@@ -1,13 +1,18 @@
 #pragma once
  
- #include "renderer_types.inl"
+#include "renderer_types.inl"
  
- struct static_mesh_data;
- struct platform_state;
+struct static_mesh_data;
+struct platform_state;
  
- b8 renderer_initialize(const char* application_name, struct platform_state* plat_state);
- void renderer_shutdown();
+b8 renderer_initialize(const char* application_name, struct platform_state* plat_state);
+void renderer_shutdown();
  
- void renderer_on_resized(u16 width, u16 height);
+void renderer_on_resized(u16 width, u16 height);
  
- b8 renderer_draw_frame(render_packet* packet);
+b8 renderer_draw_frame(render_packet* packet);
+
+// Mesh functions
+mesh* renderer_create_mesh(const vertex* vertices, u32 vertex_count);
+void renderer_destroy_mesh(mesh* m);
+void renderer_draw_mesh(mesh* m);
