@@ -33,4 +33,4 @@ if [ -d "testbed/assets" ]; then
   cp -r testbed/assets/* bin/assets/
 fi
 
-echo " Successfully build all libs "
+echo "Successfully build all libs "

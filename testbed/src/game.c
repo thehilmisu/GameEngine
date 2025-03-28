@@ -3,6 +3,7 @@
 #include "core/logger.h"
 #include "core/event.h"
 #include "renderer/renderer_frontend.h"
+#include "core/file_operations.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -95,6 +96,19 @@ b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context cont
 b8 game_initialize(game* game_instance) {
     game_state* state = (game_state*)game_instance->state;
     if (!state) return FALSE;
+
+    // Create a new file
+    char* file_path = "test.txt";
+    char* file_content = "Hello, World!";
+    u64 file_size = strlen(file_content);
+    write_buffer_to_file(file_path, file_content, file_size);
+
+    // Read the file
+    char* buffer;
+    u64 size;
+    read_file_to_buffer(file_path, &buffer, &size);
+    INFO("File content: %s", buffer);
+    free(buffer);
 
     state->delta_time = 0.0f;
     state->clear_color = (vec4){{0.0f, 0.0f, 0.2f, 1.0f}};

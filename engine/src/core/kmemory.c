@@ -38,6 +38,8 @@
  }
  
  void shutdown_memory() {
+    // platform_zero_memory(&stats, sizeof(stats));
+    // platform_free(&stats, sizeof(stats));
  }
  
  void* kallocate(u64 size, memory_tag tag) {

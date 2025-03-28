@@ -5,6 +5,8 @@
 #include <core/kstring.h>
 #ifdef __linux__
 #include <sys/time.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "core/logger.h"
 #include <SDL2/SDL.h>
@@ -236,5 +238,74 @@ void platform_sleep(u64 ms) {
     SDL_Delay(ms);  // SDL2's built-in delay function
 }
 
+b8 platform_file_exists(const char* path) {
+    return access(path, F_OK) != -1;
+}
 
+b8 platform_create_directory(const char* path) {
+    return mkdir(path, 0777) != -1;
+}
+
+b8 platform_delete_file(const char* path) {
+    return unlink(path) != -1;
+}
+
+u64 platform_get_file_size(const char* path) {
+    struct stat stat_buffer;
+    stat(path, &stat_buffer);
+    return stat_buffer.st_size;
+}
+
+b8 platform_read_file_to_string(const char* path, char** buffer, u64* size) {
+    FILE* file = fopen(path, "rb");
+    if (!file) {
+        return FALSE;
+    }   
+
+    fseek(file, 0, SEEK_END);
+    *size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    *buffer = (char*)malloc(*size);
+    fread(*buffer, 1, *size, file);
+    fclose(file);
+
+    return TRUE;
+}
+
+b8 platform_write_string_to_file(const char* path, const char* string) {
+    FILE* file = fopen(path, "w");
+    if (!file) {    
+        return FALSE;
+    }
+
+    fwrite(string, 1, strlen(string), file);
+    fclose(file);
+    return TRUE;
+}
+
+b8 platform_read_file_to_buffer(const char* path, char** buffer, u64* size) {
+    FILE* file = fopen(path, "rb");
+    if (!file) {
+        return FALSE;
+    }
+
+    fseek(file, 0, SEEK_END);
+    *size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    *buffer = (char*)malloc(*size);
+    fread(*buffer, 1, *size, file);
+    fclose(file);
+    return TRUE;
+}
+
+b8 platform_write_buffer_to_file(const char* path, const char* buffer, u64 size) {
+    FILE* file = fopen(path, "wb");
+    if (!file) {
+        return FALSE;
+    }
+
+    fwrite(buffer, 1, size, file);
+    fclose(file);
+    return TRUE;
+}
 #endif

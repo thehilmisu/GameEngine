@@ -33,3 +33,12 @@ void platform_console_write_error(const char* message, log_level level);
 f64 platform_get_absolute_time();
 
 void platform_sleep(u64 ms);
+
+b8 platform_file_exists(const char* path);
+b8 platform_create_directory(const char* path);
+b8 platform_delete_file(const char* path);
+u64 platform_get_file_size(const char* path);
+b8 platform_read_file_to_string(const char* path, char** buffer, u64* size);
+b8 platform_write_string_to_file(const char* path, const char* string);
+b8 platform_read_file_to_buffer(const char* path, char** buffer, u64* size);
+b8 platform_write_buffer_to_file(const char* path, const char* buffer, u64 size);
