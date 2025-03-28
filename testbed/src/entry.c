@@ -16,7 +16,8 @@ b8 create_game(game* out_game) {
     out_game->update = game_update;
     out_game->render = game_render;
     out_game->onresize = game_on_resize;
-    out_game->on_key_event = game_on_key;
+    out_game->on_key_event = game_on_event;
+    out_game->on_mouse_event = game_on_event;
 
     // Allocate state
     out_game->state = kallocate(sizeof(game_state), MEMORY_TAG_GAME);

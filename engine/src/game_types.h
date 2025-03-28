@@ -20,8 +20,11 @@ typedef struct game {
     // fp to window on resize function
     void (*onresize)(struct game* game_instance, u32 width, u32 height);
 
-    // fp to game on event
+    // fp to game on keyboard event
     b8 (*on_key_event)(u16 code, void* sender, void* listener_inst, event_context context);
+
+    // fp to game on mouse event
+    b8 (*on_mouse_event)(u16 code, void* sender, void* listener_inst, event_context context);
 
     void* state;
 
