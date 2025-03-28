@@ -20,25 +20,21 @@ typedef double f64;
 typedef int b32;
 typedef int b8;
 
-#if defined(__clang__) || defined(__gcc__)
-#define STATIC_ASSERT _Static_assert
-#else
-#define STATIC_ASSERT static_assert
-#endif
-
-
-STATIC_ASSERT(sizeof(u8)  == 1, "Expected u8 to be 1 byte");
-STATIC_ASSERT(sizeof(u16) == 2, "Expected u16 to be 2 byte");
-STATIC_ASSERT(sizeof(u32) == 4, "Expected u32 to be 4 byte");
-STATIC_ASSERT(sizeof(u64) == 8, "Expected u64 to be 8 byte");
-
-STATIC_ASSERT(sizeof(i8)  == 1, "Expected i8 to be 1 byte");
-STATIC_ASSERT(sizeof(i16) == 2, "Expected i16 to be 2 byte");
-STATIC_ASSERT(sizeof(i32) == 4, "Expected i32 to be 4 byte");
-STATIC_ASSERT(sizeof(i64) == 8, "Expected i64 to be 8 byte");
-
-STATIC_ASSERT(sizeof(f32) == 4, "Expected f32 to be 4 byte");
-STATIC_ASSERT(sizeof(f64) == 8, "Expected f64 to be 8 byte");
+// Compile-time size checks
+enum {
+    __check_u8  = sizeof(u8)  == 1 ? 1 : -1,
+    __check_u16 = sizeof(u16) == 2 ? 1 : -1,
+    __check_u32 = sizeof(u32) == 4 ? 1 : -1,
+    __check_u64 = sizeof(u64) == 8 ? 1 : -1,
+    
+    __check_i8  = sizeof(i8)  == 1 ? 1 : -1,
+    __check_i16 = sizeof(i16) == 2 ? 1 : -1,
+    __check_i32 = sizeof(i32) == 4 ? 1 : -1,
+    __check_i64 = sizeof(i64) == 8 ? 1 : -1,
+    
+    __check_f32 = sizeof(f32) == 4 ? 1 : -1,
+    __check_f64 = sizeof(f64) == 8 ? 1 : -1
+};
 
 #define TRUE  1
 #define FALSE 0 

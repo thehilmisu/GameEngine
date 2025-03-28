@@ -21,14 +21,34 @@ b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context cont
                 INFO("Rotation speed toggled: %.1f", state->rotation_speed);
                 return TRUE;
             } else if (key_code == 'a' || key_code == 'A') {
-                // Slow down rotation
-                state->rotation_speed = MAX(0.0f, state->rotation_speed - 0.5f);
-                INFO("Rotation speed decreased: %.1f", state->rotation_speed);
+                // Move camera left
+                state->camera_position.x -= 0.1f;
+                INFO("Camera moved left: %.2f", state->camera_position.x);
                 return TRUE;
             } else if (key_code == 'd' || key_code == 'D') {
-                // Speed up rotation
-                state->rotation_speed = MIN(4.0f, state->rotation_speed + 0.5f);
-                INFO("Rotation speed increased: %.1f", state->rotation_speed);
+                // Move camera right
+                state->camera_position.x += 0.1f;
+                INFO("Camera moved right: %.2f", state->camera_position.x);
+                return TRUE;
+            } else if (key_code == 'w' || key_code == 'W') {
+                // Move camera forward
+                state->camera_position.z -= 0.1f;
+                INFO("Camera moved forward: %.2f", state->camera_position.z);
+                return TRUE;
+            } else if (key_code == 's' || key_code == 'S') {
+                // Move camera backward
+                state->camera_position.z += 0.1f;
+                INFO("Camera moved backward: %.2f", state->camera_position.z);
+                return TRUE;
+            } else if (key_code == 'q' || key_code == 'Q') {
+                // Move camera up
+                state->camera_position.y += 0.1f;
+                INFO("Camera moved up: %.2f", state->camera_position.y);
+                return TRUE;
+            } else if (key_code == 'e' || key_code == 'E') {
+                // Move camera down
+                state->camera_position.y -= 0.1f;
+                INFO("Camera moved down: %.2f", state->camera_position.y);
                 return TRUE;
             }
             break;
@@ -39,9 +59,15 @@ b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context cont
             break;
         }
         case EVENT_CODE_MOUSE_MOVED: {
-            u16 x = context.data.u16[0];
-            u16 y = context.data.u16[1];
-            INFO("Mouse moved: %d, %d", x, y);
+            // u16 x = context.data.u16[0];
+            // u16 y = context.data.u16[1];
+            // // Update camera rotation based on mouse movement
+            // f32 sensitivity = 0.01f;
+            // state->camera_rotation.y += (x - state->last_mouse_x) * sensitivity;
+            // state->camera_rotation.x += (y - state->last_mouse_y) * sensitivity;
+            // state->last_mouse_x = x;
+            // state->last_mouse_y = y;
+            // INFO("Camera rotation: %.2f, %.2f", state->camera_rotation.x, state->camera_rotation.y);
             break;
         }
         case EVENT_CODE_MOUSE_WHEEL: {
@@ -73,7 +99,20 @@ b8 game_initialize(game* game_instance) {
     state->rotation = 0.0f;
     state->rotation_speed = 2.0f;  // Initial rotation speed
 
-    // Register for keyboard events
+    // Initialize camera
+    state->camera_position = (vec3){{0.0f, 0.0f, 3.0f}};
+    state->camera_rotation = (vec3){{0.0f, 0.0f, 0.0f}};
+    state->last_mouse_x = 0;
+    state->last_mouse_y = 0;
+
+    // Load default font
+    state->default_font = renderer_create_font("assets/fonts/Quicksand-Regular.ttf", 48);
+    if (!state->default_font) {
+        ERROR("Failed to load default font!");
+        return FALSE;
+    }
+
+    // Register for keyboard and mouse events
     event_register(EVENT_CODE_KEY_PRESSED, state, game_on_event);
     event_register(EVENT_CODE_KEY_RELEASED, state, game_on_event);
     event_register(EVENT_CODE_MOUSE_MOVED, state, game_on_event);
@@ -81,19 +120,19 @@ b8 game_initialize(game* game_instance) {
     event_register(EVENT_CODE_BUTTON_PRESSED, state, game_on_event);
     event_register(EVENT_CODE_BUTTON_RELEASED, state, game_on_event);
 
-    // Create a triangle mesh
+    // Create a larger triangle mesh in 3D space
     vertex vertices[] = {
         {
-            .position = (vec3){{0.0f, 0.5f, 0.0f}},
-            .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}
+            .position = (vec3){{0.0f, 10.0f, 0.0f}},  // Top vertex - much higher
+            .color = (vec4){{1.0f, 0.2f, 0.2f, 1.0f}}  // Brighter red
         },
         {
-            .position = (vec3){{-0.5f, -0.5f, 0.0f}},
-            .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}
+            .position = (vec3){{-10.0f, -10.0f, 0.0f}},  // Bottom left - much farther left and down
+            .color = (vec4){{0.2f, 1.0f, 0.2f, 1.0f}}  // Brighter green
         },
         {
-            .position = (vec3){{0.5f, -0.5f, 0.0f}},
-            .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}
+            .position = (vec3){{10.0f, -10.0f, 0.0f}},  // Bottom right - much farther right and down
+            .color = (vec4){{0.2f, 0.2f, 1.0f, 1.0f}}  // Brighter blue
         }
     };
 
@@ -102,6 +141,7 @@ b8 game_initialize(game* game_instance) {
         ERROR("Failed to create triangle mesh!");
         return FALSE;
     }
+    state->triangle_mesh_id = state->triangle_mesh->id;
 
     return TRUE;
 }
@@ -118,6 +158,7 @@ b8 game_update(game* game_instance, f32 delta_time) {
         state->rotation -= 2.0f * M_PI;
     }
 
+
     return TRUE;
 }
 
@@ -125,17 +166,55 @@ b8 game_render(game* game_instance, f32 delta_time) {
     game_state* state = (game_state*)game_instance->state;
     if (!state) return FALSE;
 
-    render_packet packet = {0};
-    packet.meshes = NULL;
-    packet.mesh_count = 0;
-    packet.rotation = state->rotation;  // Pass rotation to renderer
-
-    if (state->triangle_mesh) {
-        packet.meshes = state->triangle_mesh;
-        packet.mesh_count = 1;
+    // Begin frame
+    if (!renderer_begin_frame(delta_time)) {
+        return FALSE;
     }
 
-    return renderer_draw_frame(&packet);
+    // Set camera position in the render packet
+    extern render_packet current_packet;  // Access the render packet from renderer_frontend.c
+    current_packet.camera_position = state->camera_position;
+    current_packet.camera_rotation = state->camera_rotation;
+    
+    // Set mesh rotation in render packet
+    mesh_command mesh_cmd = {
+        .position = {0.0f, 0.0f, 0.0f},
+        .rotation = {0.0f, state->rotation, 0.0f},
+        .scale = {1.0f, 1.0f, 1.0f},
+        .color = {1.0f, 1.0f, 1.0f, 1.0f},
+        .mesh_id = state->triangle_mesh_id
+    };
+    current_packet.mesh_commands.commands = &mesh_cmd;
+    current_packet.mesh_commands.count = 1;
+
+    // Draw text directly (bypassing the packet)
+    text_command text_cmd1 = {
+        .text = "Hello, World!",
+        .position = (vec2){50.0f, 50.0f},  // Position near top-left corner
+        .color = (vec4){1.0f, 1.0f, 1.0f, 1.0f},
+        .scale = 1.0f
+    };
+    renderer_draw_text(state->default_font, text_cmd1.text, text_cmd1.position, text_cmd1.color, text_cmd1.scale);
+    
+    text_command text_cmd2 = {
+        .text = "Press ESC to exit",
+        .position = (vec2){50.0f, 110.0f},  // Position below first text
+        .color = (vec4){1.0f, 1.0f, 0.0f, 1.0f},  // Yellow color for contrast
+        .scale = 1.0f
+    };
+    renderer_draw_text(state->default_font, text_cmd2.text, text_cmd2.position, text_cmd2.color, text_cmd2.scale);
+    
+    // Draw mesh directly instead of relying on the packet
+    if (state->triangle_mesh) {
+        renderer_draw_mesh(state->triangle_mesh);
+    }
+    
+    // End frame
+    if (!renderer_end_frame(delta_time)) {
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 void game_on_resize(game* game_instance, u32 width, u32 height) {
@@ -149,7 +228,7 @@ void game_shutdown(game* game_instance) {
     game_state* state = (game_state*)game_instance->state;
     if (!state) return;
 
-    // Unregister from keyboard events
+    // Unregister from events
     event_unregister(EVENT_CODE_KEY_PRESSED, state, game_on_event);
     event_unregister(EVENT_CODE_KEY_RELEASED, state, game_on_event);
     event_unregister(EVENT_CODE_MOUSE_MOVED, state, game_on_event);
@@ -160,5 +239,10 @@ void game_shutdown(game* game_instance) {
     if (state->triangle_mesh) {
         renderer_destroy_mesh(state->triangle_mesh);
         state->triangle_mesh = NULL;
+    }
+
+    if (state->default_font) {
+        renderer_destroy_font(state->default_font);
+        state->default_font = NULL;
     }
 }

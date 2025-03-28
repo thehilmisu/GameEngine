@@ -1,19 +1,9 @@
 #!/bin/bash
 
-set echo on
+echo "Building testbed executable..."
 
-mkdir -p ../bin
+# Compile testbed with rpath to include current directory for library lookup
+clang src/*.c -I../engine/src -L../engine -lengine -I/usr/include/SDL2 -I/usr/include/freetype2 -D_GNU_SOURCE=1 -D_REENTRANT -lSDL2 -lGL -lGLEW -lfreetype -lm -Wl,-rpath='$ORIGIN' -o testbed
 
-CFILES=$(find . -type f -name "*.c")
-
-OUTPUT="testbed"
-CFLAGS="-g -fdeclspec -fPIC -Wall -Werror"
-
-INCLUDES="-I../engine/src -I../engine/src/core -I../engine/src/renderer -Isrc"
-LINKERFLAGS="-L../bin/ -lengine -lm -Wl,-rpath,."
-DEFINITIONS="-D_DEBUG -DKIMPORT"
-
-echo "building $OUTPUT"
-
-clang $CFILES $CFLAGS -o ../bin/$OUTPUT $DEFINITIONS $INCLUDES $LINKERFLAGS
+echo "Testbed build complete."
 

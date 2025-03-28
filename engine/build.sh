@@ -1,18 +1,22 @@
 #!/bin/bash
 
-set echo on
+echo "Building engine shared library..."
 
-mkdir -p ../bin
+# Create object directory if it doesn't exist
+mkdir -p obj
 
-CFILES=$(find . -type f -name "*.c")
+# Compile each source file
+for file in src/*.c src/core/*.c src/platform/*.c src/renderer/*.c src/renderer/opengl/*.c src/containers/*.c; do
+    if [ -f "$file" ]; then
+        obj_file="obj/$(basename ${file%.c}.o)"
+        clang -g -fPIC -c "$file" -o "$obj_file" -I/usr/include/SDL2 -I/usr/include/freetype2 -Isrc -D_GNU_SOURCE=1 -D_REENTRANT
+    fi
+done
 
-OUTPUT="engine"
+# Create shared library
+clang -g -shared -o libengine.so obj/*.o -lSDL2 -lGL -lGLEW -lfreetype -lm
 
-CFLAGS="-g -shared -fdeclspec -fPIC"
-LINKERFLAGS="-lSDL2 -lGLEW -lGL -lSDL2_ttf -lSDL2main -lSDL2_image"
+# Clean up object files
+rm -rf obj
 
-INCLUDES="-Isrc"
-DEFINITIONS="-D_DEBUG -DKEXPORT -DGLEW_STATIC"
-
-echo "building $OUTPUT ... "
-clang $CFILES $CFLAGS -o ../bin/lib$OUTPUT.so $DEFINITIONS $INCLUDES $LINKERFLAGS
+echo "Engine build complete."

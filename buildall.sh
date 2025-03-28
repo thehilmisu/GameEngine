@@ -1,31 +1,36 @@
 #!/bin/bash
 
-set echo on
-
 echo "Building everything ... "
 echo "------------------------"
 
-pushd engine
-source build.sh
-popd
+# Create bin directory if it doesn't exist
+mkdir -p bin
 
-ERRORLEVEL=$?
+# Build engine
+echo "building engine ... "
+cd engine
+./build.sh
+cd ..
 
-if [ $ERRORLEVEL -ne 0 ]
-then
-    echo "Error:"$ERRORLEVEL && exit
-fi
+# Build testbed
+echo "building testbed"
+cd testbed
+./build.sh
+cd ..
 
+# Copy the built files to bin directory
+cp engine/libengine.so bin/
+cp testbed/testbed bin/
 
-pushd testbed
-source build.sh
-popd
+# Remove the built files after copying to bin directory
+rm engine/libengine.so
+rm testbed/testbed
 
-ERRORLEVEL=$?
-
-if [ $ERRORLEVEL -ne 0 ]
-then
-    echo "Error:"$ERRORLEVEL && exit
+# Copy assets to the bin directory
+echo "Copying assets to bin directory"
+mkdir -p bin/assets/fonts
+if [ -d "testbed/assets" ]; then
+  cp -r testbed/assets/* bin/assets/
 fi
 
 echo " Successfully build all libs "
