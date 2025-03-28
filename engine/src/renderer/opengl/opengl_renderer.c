@@ -22,6 +22,7 @@ static const char* vertex_shader_source =
     "out vec4 Color;\n"
     "uniform vec3 cameraPos;\n"
     "uniform vec3 rotation;\n"  // Changed from float to vec3 to handle all axes
+    "uniform vec3 meshPosition;\n" // Add mesh position uniform
     "void main() {\n"
     "    vec3 pos = aPos;\n"
     "    \n"
@@ -56,6 +57,11 @@ static const char* vertex_shader_source =
     "        rotatedXY.x * sinZ + rotatedXY.y * cosZ,\n"
     "        rotatedXY.z\n"
     "    );\n"
+    "    \n"
+    "    // Add mesh position after rotation\n"
+    "    rotatedXYZ.x += meshPosition.x;\n"
+    "    rotatedXYZ.y += meshPosition.y;\n"
+    "    rotatedXYZ.z += meshPosition.z;\n"
     "    \n"
     "    // NOW apply camera position to move objects relative to camera\n"
     "    // (AFTER rotation, so rotation happens around object center)\n"
@@ -387,27 +393,36 @@ void opengl_renderer_draw_mesh(mesh* m) {
                    state->current_packet->camera_position.z
                    );
         
-        // Use mesh rotation from mesh_command instead of camera rotation
-        // This allows each mesh to have its own rotation
-        GLint rotation_loc = glGetUniformLocation(state->shader_program, "rotation");
-        
-        // Find the matching mesh command and pass all three rotation components
+        // Find the matching mesh command to get both rotation and position values
         for (u32 i = 0; i < state->current_packet->mesh_commands.count; i++) {
             if (state->current_packet->mesh_commands.commands[i].mesh == m) {
-                // Pass all three rotation components (x, y, z) to the shader
+                // Pass rotation components (x, y, z) to the shader
+                GLint rotation_loc = glGetUniformLocation(state->shader_program, "rotation");
                 glUniform3f(rotation_loc, 
                            state->current_packet->mesh_commands.commands[i].rotation.x,
                            state->current_packet->mesh_commands.commands[i].rotation.y,
                            state->current_packet->mesh_commands.commands[i].rotation.z);
+                
+                // Pass mesh position components (x, y, z) to the shader
+                GLint mesh_pos_loc = glGetUniformLocation(state->shader_program, "meshPosition");
+                glUniform3f(mesh_pos_loc, 
+                           state->current_packet->mesh_commands.commands[i].position.x,
+                           state->current_packet->mesh_commands.commands[i].position.y,
+                           state->current_packet->mesh_commands.commands[i].position.z);
                 break;
             }
         }
     } else {
+        // Default values when no packet is available
         glUniform3f(camera_pos_loc, 0.0f, 0.0f, 0.0f);
         
         // Default rotation value (all axes)
         GLint rotation_loc = glGetUniformLocation(state->shader_program, "rotation");
         glUniform3f(rotation_loc, 0.0f, 0.0f, 0.0f);
+        
+        // Default position value (origin)
+        GLint mesh_pos_loc = glGetUniformLocation(state->shader_program, "meshPosition");
+        glUniform3f(mesh_pos_loc, 0.0f, 0.0f, 0.0f);
     }
     
     // Bind VAO and draw

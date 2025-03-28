@@ -86,6 +86,31 @@ b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context cont
     return FALSE;
 }
 
+void update_mesh_rotation(game_state* state, f32 delta_time, u32 mesh_id) {
+    // Update mesh rotation for a specific mesh ID
+    u64 mesh_count = darray_length(state->mesh_commands);
+    INFO("update_mesh_rotation: Processing %llu meshes, looking for mesh_id %u", mesh_count, mesh_id);
+    
+    for (u64 i = 0; i < mesh_count; ++i) {
+        mesh_command* cmd = &state->mesh_commands[i];
+        if (cmd->mesh && cmd->mesh->id == mesh_id) {
+            INFO("Updating rotation for mesh %llu with id %u", i, mesh_id);
+            // Update mesh rotation with proper delta time and reasonable speed
+            float rotation_speed = 45.0f; // 45 degrees per second
+            
+            // Add rotation based on delta time for smooth motion
+            cmd->rotation.x += rotation_speed * delta_time;
+            cmd->rotation.y += rotation_speed * delta_time;
+            cmd->rotation.z += rotation_speed * delta_time * 0.5f; // Slower Z rotation
+        
+            // Keep rotation within 0-360 degrees
+            while (cmd->rotation.x >= 360.0f) cmd->rotation.x -= 360.0f;
+            while (cmd->rotation.y >= 360.0f) cmd->rotation.y -= 360.0f;
+            while (cmd->rotation.z >= 360.0f) cmd->rotation.z -= 360.0f;
+        }
+    }
+}
+
 b8 game_initialize(game* game_instance) {
     game_state* state = (game_state*)game_instance->state;
     if (!state) return FALSE;
@@ -113,23 +138,9 @@ b8 game_initialize(game* game_instance) {
     state->last_mouse_x = 0;
     state->last_mouse_y = 0;
     
-    // Initialize mesh command with default values
-    state->triangle_mesh_command.position = (vec3){{0.0f, 0.0f, 0.0f}};
-    state->triangle_mesh_command.rotation = (vec3){{0.0f, 0.0f, 0.0f}};
-    state->triangle_mesh_command.scale = (vec3){{1.0f, 1.0f, 1.0f}};
-    state->triangle_mesh_command.color = (vec4){{1.0f, 1.0f, 1.0f, 1.0f}};
-
-    // Load default font
-    state->default_font = renderer_create_font("assets/fonts/NotoMono-Regular.ttf", 48);
-    if (!state->default_font) {
-        WARN("Failed to load primary font, trying fallback font...");
-        state->default_font = renderer_create_fallback_font(48);
-        if (!state->default_font) {
-            ERROR("Failed to load fallback font!");
-            return FALSE;
-        }
-        INFO("Fallback font loaded successfully");
-    }
+    // Initialize mesh and text commands arrays
+    state->mesh_commands = darray_create(mesh_command);
+    state->text_commands = darray_create(text_command);
 
     // Register for keyboard and mouse events
     event_register(EVENT_CODE_KEY_PRESSED, state, game_on_event);
@@ -204,12 +215,35 @@ b8 game_initialize(game* game_instance) {
     };
 
     // Create mesh with 36 vertices (6 faces, 2 triangles per face, 3 vertices per triangle)
-    state->triangle_mesh_command.mesh = renderer_create_mesh(vertices, 36);
-    if (!state->triangle_mesh_command.mesh) {
-        ERROR("Failed to create triangle mesh!");
+    mesh* cube_mesh = renderer_create_mesh(vertices, 36);
+    if (!cube_mesh) {
+        ERROR("Failed to create cube mesh!");
         return FALSE;
     }
-    ///////////////////////////////////////////////////////////////////////
+    mesh* cube_mesh2 = renderer_create_mesh(vertices, 36);
+    if (!cube_mesh2) {
+        ERROR("Failed to create cube mesh!");
+        return FALSE;
+    }   
+    // Create and add cube mesh command to the array
+    render_mesh(state, cube_mesh, (vec3){{0.0f, 0.0f, 0.0f}}, (vec3){{0.0f, 0.0f, 0.0f}}, (vec3){{1.0f, 1.0f, 1.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}});
+    render_mesh(state, cube_mesh2, (vec3){{-2.5f, -1.5f, 0.0f}}, (vec3){{45.0f, 45.0f, 0.0f}}, (vec3){{0.75f, 0.75f, 0.75f}}, (vec4){{0.0f, 1.0f, 0.0f, 1.0f}});
+
+    // Load default font
+    state->default_font = renderer_create_font("assets/fonts/NotoMono-Regular.ttf", 48);
+    if (!state->default_font) {
+        WARN("Failed to load primary font, trying fallback font...");
+        state->default_font = renderer_create_fallback_font(48);
+        if (!state->default_font) {
+            ERROR("Failed to load fallback font!");
+            return FALSE;
+        }
+        INFO("Fallback font loaded successfully");
+    }
+
+    render_text(state, "Hello, World!", (vec2){{50.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->default_font);
+    render_text(state, "Hello, World!", (vec2){{100.0f, 100.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->default_font);
+    render_text(state, "Hello, World!", (vec2){{150.0f, 150.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->default_font);
 
     return TRUE;
 }
@@ -221,22 +255,14 @@ b8 game_update(game* game_instance, f32 delta_time) {
     state->delta_time = delta_time;
     state->fps = 1.0f / delta_time;
 
-
-    // Update mesh rotation with proper delta time and reasonable speed
-    float rotation_speed = 45.0f; // 45 degrees per second
-    
-    // Add rotation based on delta time for smooth motion
-    state->triangle_mesh_command.rotation.x += rotation_speed * delta_time;
-    state->triangle_mesh_command.rotation.y += rotation_speed * delta_time;
-    state->triangle_mesh_command.rotation.z += rotation_speed * delta_time * 0.5f; // Slower Z rotation
-    
-    // Keep rotation within 0-360 degrees
-    while (state->triangle_mesh_command.rotation.x >= 360.0f) state->triangle_mesh_command.rotation.x -= 360.0f;
-    while (state->triangle_mesh_command.rotation.y >= 360.0f) state->triangle_mesh_command.rotation.y -= 360.0f;
-    while (state->triangle_mesh_command.rotation.z >= 360.0f) state->triangle_mesh_command.rotation.z -= 360.0f;
-    
-    // INFO("Mesh rotation: %f, %f, %f", state->triangle_mesh_command.rotation.x, state->triangle_mesh_command.rotation.y, state->triangle_mesh_command.rotation.z);
-    
+    // Update all mesh rotations
+    u64 mesh_count = darray_length(state->mesh_commands);
+    for (u64 i = 0; i < mesh_count; ++i) {
+        if (state->mesh_commands[i].mesh) {
+            update_mesh_rotation(state, delta_time, state->mesh_commands[i].mesh->id);
+        }
+    }
+ 
     return TRUE;
 }
 
@@ -252,25 +278,23 @@ b8 game_render(game* game_instance, f32 delta_time) {
     // Initialize command counts
     current_packet.text_commands.count = 0;
     
-    // Set mesh command
-    mesh_command mesh_cmd = {
-        .position = state->triangle_mesh_command.position,
-        .rotation = state->triangle_mesh_command.rotation,
-        .scale = state->triangle_mesh_command.scale,
-        .color = state->triangle_mesh_command.color,
-        .mesh = state->triangle_mesh_command.mesh
-    };
-    current_packet.mesh_commands.commands = &mesh_cmd;
-    current_packet.mesh_commands.count = 1;
-    
-    // Display FPS
-    char fps_text[10];
-    snprintf(fps_text, sizeof(fps_text), "FPS: %.2f", state->fps);
-    
-    if (state->triangle_mesh_command.mesh) {
-        renderer_draw_frame(&current_packet);
+    // Set mesh commands from the darray
+    u64 mesh_count = darray_length(state->mesh_commands);
+    if (mesh_count > 0) {
+        current_packet.mesh_commands.commands = state->mesh_commands;
+        current_packet.mesh_commands.count = (u32)mesh_count;
     }
-   
+
+    // Set text commands from the darray
+    u64 text_count = darray_length(state->text_commands);
+    if (text_count > 0) {
+        current_packet.text_commands.commands = state->text_commands;
+        current_packet.text_commands.count = (u32)text_count;
+    }
+    
+    // Draw the frame
+    renderer_draw_frame(&current_packet);
+    
     return TRUE;
 }
 
@@ -283,6 +307,7 @@ void game_on_resize(game* game_instance, u32 width, u32 height) {
 void game_shutdown(game* game_instance) {
     game_state* state = (game_state*)game_instance->state;
     if (!state) return;
+    
     // Unregister from events
     event_unregister(EVENT_CODE_KEY_PRESSED, state, game_on_event);
     event_unregister(EVENT_CODE_KEY_RELEASED, state, game_on_event);
@@ -291,20 +316,44 @@ void game_shutdown(game* game_instance) {
     event_unregister(EVENT_CODE_BUTTON_PRESSED, state, game_on_event);
     event_unregister(EVENT_CODE_BUTTON_RELEASED, state, game_on_event);
 
-    if (state->triangle_mesh_command.mesh) {
-        renderer_destroy_mesh(state->triangle_mesh_command.mesh);
-        state->triangle_mesh_command.mesh = NULL;
+    // Destroy meshes in the darray
+    u64 mesh_count = darray_length(state->mesh_commands);
+    for (u64 i = 0; i < mesh_count; ++i) {
+        if (state->mesh_commands[i].mesh) {
+            renderer_destroy_mesh(state->mesh_commands[i].mesh);
+            state->mesh_commands[i].mesh = NULL;
+        }
     }
-
+    
+    // Destroy the darray
+    if (state->mesh_commands) {
+        darray_destroy(state->mesh_commands);
+        state->mesh_commands = NULL;
+    }
+    if (state->text_commands) {
+        darray_destroy(state->text_commands);
+        state->text_commands = NULL;
+    }
     if (state->default_font) {
         renderer_destroy_font(state->default_font);
         state->default_font = NULL;
     }
 }
 
-void draw_text(game_state* state, const char* text, 
-              vec2 position, vec4 color, f32 scale, font* font, 
-              render_packet* packet) {
+void render_mesh(game_state* state, mesh* mesh, vec3 position, vec3 rotation, vec3 scale, vec4 color) {
+    mesh_command mesh_cmd = {
+        .mesh = mesh,
+        .position = position,
+        .rotation = rotation,
+        .scale = scale,
+        .color = color
+    };
+    darray_push(state->mesh_commands, mesh_cmd);
+    INFO("Added mesh to render list. Position: (%.2f, %.2f, %.2f), Total count: %llu", 
+         position.x, position.y, position.z, darray_length(state->mesh_commands));
+}
+
+void render_text(game_state* state, const char* text, vec2 position, vec4 color, f32 scale, font* font) {
     text_command text_cmd = {
         .text = text,
         .position = position,
@@ -312,6 +361,5 @@ void draw_text(game_state* state, const char* text,
         .scale = scale,
         .font = font
     };
-    packet->text_commands.commands = &text_cmd;
-    packet->text_commands.count += 1;    
+    darray_push(state->text_commands, text_cmd);
 }
