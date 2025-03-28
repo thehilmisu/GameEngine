@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <math.h>
 
+#define CAMERA_SPEED 0.5f
+#define CAMERA_ROTATION_SPEED 1.5f 
 
 // Event handler function
 b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context context) {
@@ -16,39 +18,34 @@ b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context cont
     switch (code) {
         case EVENT_CODE_KEY_PRESSED: {
             u16 key_code = context.data.u16[0];
-            if (key_code == ' ') {
-                // Toggle rotation speed
-                state->rotation_speed = state->rotation_speed == 2.0f ? 0.0f : 2.0f;
-                INFO("Rotation speed toggled: %.1f", state->rotation_speed);
-                return TRUE;
-            } else if (key_code == 'a' || key_code == 'A') {
+            if (key_code == 'a' || key_code == 'A') {
                 // Move camera left
-                state->camera_position.x -= 0.1f;
+                state->camera_position.x -= CAMERA_SPEED;
                 INFO("Camera moved left: %.2f", state->camera_position.x);
                 return TRUE;
             } else if (key_code == 'd' || key_code == 'D') {
                 // Move camera right
-                state->camera_position.x += 0.1f;
+                state->camera_position.x += CAMERA_SPEED;
                 INFO("Camera moved right: %.2f", state->camera_position.x);
                 return TRUE;
             } else if (key_code == 'w' || key_code == 'W') {
                 // Move camera forward
-                state->camera_position.z -= 0.1f;
+                state->camera_position.z += CAMERA_SPEED;
                 INFO("Camera moved forward: %.2f", state->camera_position.z);
                 return TRUE;
             } else if (key_code == 's' || key_code == 'S') {
                 // Move camera backward
-                state->camera_position.z += 0.1f;
+                state->camera_position.z -= CAMERA_SPEED;
                 INFO("Camera moved backward: %.2f", state->camera_position.z);
                 return TRUE;
             } else if (key_code == 'q' || key_code == 'Q') {
                 // Move camera up
-                state->camera_position.y += 0.1f;
+                state->camera_position.y += CAMERA_SPEED;
                 INFO("Camera moved up: %.2f", state->camera_position.y);
                 return TRUE;
             } else if (key_code == 'e' || key_code == 'E') {
                 // Move camera down
-                state->camera_position.y -= 0.1f;
+                state->camera_position.y -= CAMERA_SPEED;
                 INFO("Camera moved down: %.2f", state->camera_position.y);
                 return TRUE;
             }
@@ -60,22 +57,19 @@ b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context cont
             break;
         }
         case EVENT_CODE_MOUSE_MOVED: {
-            // u16 x = context.data.u16[0];
-            // u16 y = context.data.u16[1];
-            // // Update camera rotation based on mouse movement
-            // f32 sensitivity = 0.01f;
-            // state->camera_rotation.y += (x - state->last_mouse_x) * sensitivity;
-            // state->camera_rotation.x += (y - state->last_mouse_y) * sensitivity;
-            // state->last_mouse_x = x;
-            // state->last_mouse_y = y;
-            // INFO("Camera rotation: %.2f, %.2f", state->camera_rotation.x, state->camera_rotation.y);
-            break;
+            u16 x = context.data.u16[0];
+            u16 y = context.data.u16[1];
+            
+            // Save current mouse position for next frame
+            state->last_mouse_x = x;
+            state->last_mouse_y = y;
+            return TRUE;
         }
         case EVENT_CODE_MOUSE_WHEEL: {
-            u16 x_delta = context.data.u16[0];
-            u16 y_delta = context.data.u16[1];
-            u16 z_delta = context.data.u16[2];
-            INFO("Mouse wheel: %d, %d, %d", x_delta, y_delta, z_delta);
+            // u16 x_delta = context.data.u16[0];
+            // u16 y_delta = context.data.u16[1];
+            // u16 z_delta = context.data.u16[2];
+            // INFO("Mouse wheel: %d, %d, %d", x_delta, y_delta, z_delta);
             break;
         }   
         case EVENT_CODE_BUTTON_PRESSED: {
@@ -88,7 +82,6 @@ b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context cont
             INFO("Mouse button released: %d", button);
             break;
         }
-        
     }
     return FALSE;
 }
@@ -112,15 +105,19 @@ b8 game_initialize(game* game_instance) {
 
     state->delta_time = 0.0f;
     state->clear_color = (vec4){{0.0f, 0.0f, 0.2f, 1.0f}};
-    state->rotation = 0.0f;
-    state->rotation_speed = 2.0f;  // Initial rotation speed
     state->fps = 0.0f;
 
-    // Initialize camera
-    state->camera_position = (vec3){{0.0f, 0.0f, 3.0f}};
-    state->camera_rotation = (vec3){{0.0f, 0.0f, 0.0f}};
+    // Initialize camera with a better position to see 3D effects
+    state->camera_position = (vec3){{2.5f, 2.5f, 3.5f}};
+    state->camera_rotation = (vec3){{0.5f, 0.5f, 0.0f}};
     state->last_mouse_x = 0;
     state->last_mouse_y = 0;
+    
+    // Initialize mesh command with default values
+    state->triangle_mesh_command.position = (vec3){{0.0f, 0.0f, 0.0f}};
+    state->triangle_mesh_command.rotation = (vec3){{0.0f, 0.0f, 0.0f}};
+    state->triangle_mesh_command.scale = (vec3){{1.0f, 1.0f, 1.0f}};
+    state->triangle_mesh_command.color = (vec4){{1.0f, 1.0f, 1.0f, 1.0f}};
 
     // Load default font
     state->default_font = renderer_create_font("assets/fonts/NotoMono-Regular.ttf", 48);
@@ -143,25 +140,72 @@ b8 game_initialize(game* game_instance) {
     event_register(EVENT_CODE_BUTTON_RELEASED, state, game_on_event);
 
     //TODO: Move this to a separate function
-    // Triangle Vertices
+    // Create a cube - a more obvious 3D shape
     vertex vertices[] = {
-        {
-            .position = (vec3){{0.0f, 3.0f, 0.0f}},  // Top vertex - much higher
-            .color = (vec4){{1.0f, 0.2f, 0.2f, 1.0f}}  // Brighter red
-        },
-        {
-            .position = (vec3){{-3.0f, -3.0f, 0.0f}},  // Bottom left - much farther left and down
-            .color = (vec4){{0.2f, 1.0f, 0.2f, 1.0f}}  // Brighter green
-        },
-        {
-            .position = (vec3){{3.0f, -3.0f, 0.0f}},  // Bottom right - much farther right and down
-            .color = (vec4){{0.2f, 0.2f, 1.0f, 1.0f}}  // Brighter blue
-        }
+        // Front face (red)
+        // Triangle 1
+        { .position = (vec3){{-1.0f, -1.0f,  1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}} }, // bottom-left
+        { .position = (vec3){{ 1.0f, -1.0f,  1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}} }, // bottom-right
+        { .position = (vec3){{ 1.0f,  1.0f,  1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}} }, // top-right
+        // Triangle 2
+        { .position = (vec3){{-1.0f, -1.0f,  1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}} }, // bottom-left
+        { .position = (vec3){{ 1.0f,  1.0f,  1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}} }, // top-right
+        { .position = (vec3){{-1.0f,  1.0f,  1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}} }, // top-left
+        
+        // Back face (green)
+        // Triangle 1
+        { .position = (vec3){{-1.0f, -1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}} }, // bottom-left
+        { .position = (vec3){{-1.0f,  1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}} }, // top-left
+        { .position = (vec3){{ 1.0f,  1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}} }, // top-right
+        // Triangle 2
+        { .position = (vec3){{-1.0f, -1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}} }, // bottom-left
+        { .position = (vec3){{ 1.0f,  1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}} }, // top-right
+        { .position = (vec3){{ 1.0f, -1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}} }, // bottom-right
+        
+        // Top face (blue)
+        // Triangle 1
+        { .position = (vec3){{-1.0f,  1.0f, -1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}} }, // back-left
+        { .position = (vec3){{-1.0f,  1.0f,  1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}} }, // front-left
+        { .position = (vec3){{ 1.0f,  1.0f,  1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}} }, // front-right
+        // Triangle 2
+        { .position = (vec3){{-1.0f,  1.0f, -1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}} }, // back-left
+        { .position = (vec3){{ 1.0f,  1.0f,  1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}} }, // front-right
+        { .position = (vec3){{ 1.0f,  1.0f, -1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}} }, // back-right
+        
+        // Bottom face (yellow)
+        // Triangle 1
+        { .position = (vec3){{-1.0f, -1.0f, -1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}} }, // back-left
+        { .position = (vec3){{ 1.0f, -1.0f, -1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}} }, // back-right
+        { .position = (vec3){{ 1.0f, -1.0f,  1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}} }, // front-right
+        // Triangle 2
+        { .position = (vec3){{-1.0f, -1.0f, -1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}} }, // back-left
+        { .position = (vec3){{ 1.0f, -1.0f,  1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}} }, // front-right
+        { .position = (vec3){{-1.0f, -1.0f,  1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}} }, // front-left
+        
+        // Right face (magenta)
+        // Triangle 1
+        { .position = (vec3){{ 1.0f, -1.0f, -1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}} }, // bottom-back
+        { .position = (vec3){{ 1.0f,  1.0f, -1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}} }, // top-back
+        { .position = (vec3){{ 1.0f,  1.0f,  1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}} }, // top-front
+        // Triangle 2
+        { .position = (vec3){{ 1.0f, -1.0f, -1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}} }, // bottom-back
+        { .position = (vec3){{ 1.0f,  1.0f,  1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}} }, // top-front
+        { .position = (vec3){{ 1.0f, -1.0f,  1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}} }, // bottom-front
+        
+        // Left face (cyan)
+        // Triangle 1
+        { .position = (vec3){{-1.0f, -1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}} }, // bottom-back
+        { .position = (vec3){{-1.0f, -1.0f,  1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}} }, // bottom-front
+        { .position = (vec3){{-1.0f,  1.0f,  1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}} }, // top-front
+        // Triangle 2
+        { .position = (vec3){{-1.0f, -1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}} }, // bottom-back
+        { .position = (vec3){{-1.0f,  1.0f,  1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}} }, // top-front
+        { .position = (vec3){{-1.0f,  1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}} }  // top-back
     };
 
-    // Create Triangle mesh 
-    state->triangle_mesh = renderer_create_mesh(vertices, 3);
-    if (!state->triangle_mesh) {
+    // Create mesh with 36 vertices (6 faces, 2 triangles per face, 3 vertices per triangle)
+    state->triangle_mesh_command.mesh = renderer_create_mesh(vertices, 36);
+    if (!state->triangle_mesh_command.mesh) {
         ERROR("Failed to create triangle mesh!");
         return FALSE;
     }
@@ -176,13 +220,23 @@ b8 game_update(game* game_instance, f32 delta_time) {
 
     state->delta_time = delta_time;
     state->fps = 1.0f / delta_time;
-    // Update rotation with variable speed
-    state->rotation += delta_time * state->rotation_speed;
-    // INFO("Rotation: %.2f", state->rotation);
-    // if (state->rotation > 2.0f * M_PI) {
-    //     state->rotation -= 2.0f * M_PI;
-    // }
 
+
+    // Update mesh rotation with proper delta time and reasonable speed
+    float rotation_speed = 45.0f; // 45 degrees per second
+    
+    // Add rotation based on delta time for smooth motion
+    state->triangle_mesh_command.rotation.x += rotation_speed * delta_time;
+    state->triangle_mesh_command.rotation.y += rotation_speed * delta_time;
+    state->triangle_mesh_command.rotation.z += rotation_speed * delta_time * 0.5f; // Slower Z rotation
+    
+    // Keep rotation within 0-360 degrees
+    while (state->triangle_mesh_command.rotation.x >= 360.0f) state->triangle_mesh_command.rotation.x -= 360.0f;
+    while (state->triangle_mesh_command.rotation.y >= 360.0f) state->triangle_mesh_command.rotation.y -= 360.0f;
+    while (state->triangle_mesh_command.rotation.z >= 360.0f) state->triangle_mesh_command.rotation.z -= 360.0f;
+    
+    // INFO("Mesh rotation: %f, %f, %f", state->triangle_mesh_command.rotation.x, state->triangle_mesh_command.rotation.y, state->triangle_mesh_command.rotation.z);
+    
     return TRUE;
 }
 
@@ -193,18 +247,18 @@ b8 game_render(game* game_instance, f32 delta_time) {
     // Set camera position in the render packet
     render_packet current_packet;  
     current_packet.camera_position = state->camera_position;
-    
-    // Set rotation value in camera_rotation.y for the shader
-    state->camera_rotation.y = state->rotation;
     current_packet.camera_rotation = state->camera_rotation;
     
-    // Set mesh rotation in render packet
+    // Initialize command counts
+    current_packet.text_commands.count = 0;
+    
+    // Set mesh command
     mesh_command mesh_cmd = {
-        .position = {0.0f, 0.0f, 0.0f},
-        .rotation = {0.0f, state->rotation, 0.0f},
-        .scale = {1.0f, 1.0f, 1.0f},
-        .color = {1.0f, 1.0f, 1.0f, 1.0f},
-        .mesh = state->triangle_mesh
+        .position = state->triangle_mesh_command.position,
+        .rotation = state->triangle_mesh_command.rotation,
+        .scale = state->triangle_mesh_command.scale,
+        .color = state->triangle_mesh_command.color,
+        .mesh = state->triangle_mesh_command.mesh
     };
     current_packet.mesh_commands.commands = &mesh_cmd;
     current_packet.mesh_commands.count = 1;
@@ -212,17 +266,8 @@ b8 game_render(game* game_instance, f32 delta_time) {
     // Display FPS
     char fps_text[10];
     snprintf(fps_text, sizeof(fps_text), "FPS: %.2f", state->fps);
-    text_command text_cmd1 = {
-        .text = fps_text,
-        .position = (vec2){50.0f, 50.0f},  // Position near top-left corner
-        .color = (vec4){1.0f, 1.0f, 1.0f, 1.0f},
-        .scale = 0.5f,
-        .font = state->default_font
-    };
-    current_packet.text_commands.commands = &text_cmd1;
-    current_packet.text_commands.count = 1;
     
-    if (state->triangle_mesh) {
+    if (state->triangle_mesh_command.mesh) {
         renderer_draw_frame(&current_packet);
     }
    
@@ -246,13 +291,27 @@ void game_shutdown(game* game_instance) {
     event_unregister(EVENT_CODE_BUTTON_PRESSED, state, game_on_event);
     event_unregister(EVENT_CODE_BUTTON_RELEASED, state, game_on_event);
 
-    if (state->triangle_mesh) {
-        renderer_destroy_mesh(state->triangle_mesh);
-        state->triangle_mesh = NULL;
+    if (state->triangle_mesh_command.mesh) {
+        renderer_destroy_mesh(state->triangle_mesh_command.mesh);
+        state->triangle_mesh_command.mesh = NULL;
     }
 
     if (state->default_font) {
         renderer_destroy_font(state->default_font);
         state->default_font = NULL;
     }
+}
+
+void draw_text(game_state* state, const char* text, 
+              vec2 position, vec4 color, f32 scale, font* font, 
+              render_packet* packet) {
+    text_command text_cmd = {
+        .text = text,
+        .position = position,
+        .color = color,
+        .scale = scale,
+        .font = font
+    };
+    packet->text_commands.commands = &text_cmd;
+    packet->text_commands.count += 1;    
 }

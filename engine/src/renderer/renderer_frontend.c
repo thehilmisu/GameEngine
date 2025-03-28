@@ -98,9 +98,7 @@ b8 renderer_draw_frame(render_packet* packet) {
                 ERROR("Attempted to draw text with NULL font");
             }
         }
-    } else {
-        INFO("No text commands to process");
-    }
+    } 
     
     // Draw mesh commands
     if (packet->mesh_commands.commands && packet->mesh_commands.count > 0) {

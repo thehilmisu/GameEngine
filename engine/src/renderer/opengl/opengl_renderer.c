@@ -21,31 +21,60 @@ static const char* vertex_shader_source =
     "layout (location = 1) in vec4 aColor;\n"
     "out vec4 Color;\n"
     "uniform vec3 cameraPos;\n"
-    "uniform float rotation;\n"
+    "uniform vec3 rotation;\n"  // Changed from float to vec3 to handle all axes
     "void main() {\n"
     "    vec3 pos = aPos;\n"
-    "    // Apply camera position to move objects relative to camera\n"
-    "    pos.x -= cameraPos.x;\n"
-    "    pos.y -= cameraPos.y;\n"
+    "    \n"
+    "    // Convert degrees to radians for all three axes\n"
+    "    float rotX_rad = rotation.x * 3.14159 / 180.0;\n"
+    "    float rotY_rad = rotation.y * 3.14159 / 180.0;\n"
+    "    float rotZ_rad = rotation.z * 3.14159 / 180.0;\n"
+    "    \n"
+    "    // Rotation around X axis\n"
+    "    float cosX = cos(rotX_rad);\n"
+    "    float sinX = sin(rotX_rad);\n"
+    "    vec3 rotatedX = vec3(\n"
+    "        pos.x,\n"
+    "        pos.y * cosX - pos.z * sinX,\n"
+    "        pos.y * sinX + pos.z * cosX\n"
+    "    );\n"
+    "    \n"
+    "    // Rotation around Y axis\n"
+    "    float cosY = cos(rotY_rad);\n"
+    "    float sinY = sin(rotY_rad);\n"
+    "    vec3 rotatedXY = vec3(\n"
+    "        rotatedX.x * cosY + rotatedX.z * sinY,\n"
+    "        rotatedX.y,\n"
+    "        -rotatedX.x * sinY + rotatedX.z * cosY\n"
+    "    );\n"
+    "    \n"
+    "    // Rotation around Z axis\n"
+    "    float cosZ = cos(rotZ_rad);\n"
+    "    float sinZ = sin(rotZ_rad);\n"
+    "    vec3 rotatedXYZ = vec3(\n"
+    "        rotatedXY.x * cosZ - rotatedXY.y * sinZ,\n"
+    "        rotatedXY.x * sinZ + rotatedXY.y * cosZ,\n"
+    "        rotatedXY.z\n"
+    "    );\n"
+    "    \n"
+    "    // NOW apply camera position to move objects relative to camera\n"
+    "    // (AFTER rotation, so rotation happens around object center)\n"
+    "    rotatedXYZ.x -= cameraPos.x;\n"
+    "    rotatedXYZ.y -= cameraPos.y;\n"
+    "    \n"
     "    // Make Z movement more pronounced with perspective effect\n"
     "    float z_offset = 10.0;\n"
     "    float z_pos = z_offset - cameraPos.z;\n"
-    "    pos.z -= z_pos;\n"
+    "    rotatedXYZ.z -= z_pos;\n"
     "    \n"
     "    // Create perspective effect manually\n"
     "    float scale_factor = 5.0;\n"
     "    float perspective = 10.0 / (10.0 + z_pos);\n"
-    "    float rotation_radians = rotation * 3.14159 / 180.0;\n"
-    "    mat4 rotation_matrix = mat4(\n"
-    "        cos(rotation_radians), -sin(rotation_radians), 0.0, 0.0,\n"
-    "        sin(rotation_radians), cos(rotation_radians), 0.0, 0.0,\n"
-    "        0.0, 0.0, 1.0, 0.0,\n"
-    "        0.0, 0.0, 0.0, 1.0\n"
-    "    );\n"
-    "    pos = (rotation_matrix * vec4(pos, 1.0)).xyz;\n"
-    "    gl_Position = vec4(pos.x * perspective / scale_factor, \n"
-    "                       pos.y * perspective / scale_factor, \n"
-    "                       pos.z / 20.0, \n"
+    "    \n"
+    "    // Apply perspective projection\n"
+    "    gl_Position = vec4(rotatedXYZ.x * perspective / scale_factor, \n"
+    "                       rotatedXYZ.y * perspective / scale_factor, \n"
+    "                       rotatedXYZ.z / 20.0, \n"
     "                       1.0);\n"
     "    Color = aColor;\n"
     "}\0";
@@ -358,15 +387,27 @@ void opengl_renderer_draw_mesh(mesh* m) {
                    state->current_packet->camera_position.z
                    );
         
-        // Set the rotation uniform - use Y rotation from camera rotation
+        // Use mesh rotation from mesh_command instead of camera rotation
+        // This allows each mesh to have its own rotation
         GLint rotation_loc = glGetUniformLocation(state->shader_program, "rotation");
-        glUniform1f(rotation_loc, state->current_packet->camera_rotation.y);
+        
+        // Find the matching mesh command and pass all three rotation components
+        for (u32 i = 0; i < state->current_packet->mesh_commands.count; i++) {
+            if (state->current_packet->mesh_commands.commands[i].mesh == m) {
+                // Pass all three rotation components (x, y, z) to the shader
+                glUniform3f(rotation_loc, 
+                           state->current_packet->mesh_commands.commands[i].rotation.x,
+                           state->current_packet->mesh_commands.commands[i].rotation.y,
+                           state->current_packet->mesh_commands.commands[i].rotation.z);
+                break;
+            }
+        }
     } else {
         glUniform3f(camera_pos_loc, 0.0f, 0.0f, 0.0f);
         
-        // Default rotation value
+        // Default rotation value (all axes)
         GLint rotation_loc = glGetUniformLocation(state->shader_program, "rotation");
-        glUniform1f(rotation_loc, 0.0f);
+        glUniform3f(rotation_loc, 0.0f, 0.0f, 0.0f);
     }
     
     // Bind VAO and draw

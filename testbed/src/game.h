@@ -13,11 +13,10 @@ typedef struct game_state {
     f32 delta_time;
     f32 fps;
     vec4 clear_color;  // Color to clear the screen with
-    mesh* triangle_mesh;
-    u32 triangle_mesh_id;
-    f32 rotation;  // Current rotation angle
-    f32 rotation_speed;  // Speed of rotation in radians per second
-    
+
+    // Meshes
+    mesh_command triangle_mesh_command;
+
     // Camera
     vec3 camera_position;
     vec3 camera_rotation;
@@ -34,5 +33,7 @@ b8 game_update(game* game_instance, f32 delta_time);
 b8 game_render(game* game_instance, f32 delta_time);
 void game_on_resize(game* game_instance, u32 width, u32 height);
 void game_shutdown(game* game_instance);
-
+void draw_text(game_state* state, const char* text, 
+              vec2 position, vec4 color, f32 scale, font* font, 
+              render_packet* packet);
 #endif
