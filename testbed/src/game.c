@@ -89,12 +89,12 @@ b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context cont
 void update_mesh_rotation(game_state* state, f32 delta_time, u32 mesh_id) {
     // Update mesh rotation for a specific mesh ID
     u64 mesh_count = darray_length(state->mesh_commands);
-    INFO("update_mesh_rotation: Processing %llu meshes, looking for mesh_id %u", mesh_count, mesh_id);
+    // INFO("update_mesh_rotation: Processing %llu meshes, looking for mesh_id %u", mesh_count, mesh_id);
     
     for (u64 i = 0; i < mesh_count; ++i) {
         mesh_command* cmd = &state->mesh_commands[i];
         if (cmd->mesh && cmd->mesh->id == mesh_id) {
-            INFO("Updating rotation for mesh %llu with id %u", i, mesh_id);
+            // INFO("Updating rotation for mesh %llu with id %u", i, mesh_id);
             // Update mesh rotation with proper delta time and reasonable speed
             float rotation_speed = 45.0f; // 45 degrees per second
             
@@ -229,21 +229,10 @@ b8 game_initialize(game* game_instance) {
     render_mesh(state, cube_mesh, (vec3){{0.0f, 0.0f, 0.0f}}, (vec3){{0.0f, 0.0f, 0.0f}}, (vec3){{1.0f, 1.0f, 1.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}});
     render_mesh(state, cube_mesh2, (vec3){{-2.5f, -1.5f, 0.0f}}, (vec3){{45.0f, 45.0f, 0.0f}}, (vec3){{0.75f, 0.75f, 0.75f}}, (vec4){{0.0f, 1.0f, 0.0f, 1.0f}});
 
-    // Load default font
-    state->default_font = renderer_create_font("assets/fonts/NotoMono-Regular.ttf", 48);
-    if (!state->default_font) {
-        WARN("Failed to load primary font, trying fallback font...");
-        state->default_font = renderer_create_fallback_font(48);
-        if (!state->default_font) {
-            ERROR("Failed to load fallback font!");
-            return FALSE;
-        }
-        INFO("Fallback font loaded successfully");
-    }
-
-    render_text(state, "Hello, World!", (vec2){{50.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->default_font);
-    render_text(state, "Hello, World!", (vec2){{100.0f, 100.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->default_font);
-    render_text(state, "Hello, World!", (vec2){{150.0f, 150.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->default_font);
+    state->font = renderer_get_default_font();
+    render_text(state, "Hello, World!", (vec2){{50.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+    render_text(state, "Hello, World!", (vec2){{100.0f, 100.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+    render_text(state, "Hello, World!", (vec2){{150.0f, 150.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
 
     return TRUE;
 }
@@ -333,10 +322,6 @@ void game_shutdown(game* game_instance) {
     if (state->text_commands) {
         darray_destroy(state->text_commands);
         state->text_commands = NULL;
-    }
-    if (state->default_font) {
-        renderer_destroy_font(state->default_font);
-        state->default_font = NULL;
     }
 }
 

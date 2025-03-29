@@ -27,3 +27,6 @@ font* renderer_create_font(const char* font_path, u32 font_size);
 font* renderer_create_fallback_font(u32 font_size);
 void renderer_destroy_font(font* f);
 void renderer_draw_text(font* f, const char* text, vec2 position, vec4 color, f32 scale);
+
+// Default font
+API font* renderer_get_default_font();

@@ -10,6 +10,7 @@ struct platform_state;
 
 // Backend render context.
 static renderer_backend* backend = 0;
+static font* default_font = 0;
 
 b8 renderer_initialize(const char* application_name, struct platform_state* plat_state) {
     backend = kallocate(sizeof(renderer_backend), MEMORY_TAG_RENDERER);
@@ -36,8 +37,24 @@ b8 renderer_initialize(const char* application_name, struct platform_state* plat
         ERROR("Renderer backend failed to initialize. Shutting down.");
         return FALSE;
     }
+     // Load default font
+    default_font = renderer_create_font("assets/fonts/NotoMono-Regular.ttf", 48);
+    if (!default_font) {
+        WARN("Failed to load primary font, trying fallback font...");
+        default_font = renderer_create_fallback_font(48);
+        if (!default_font) {
+            ERROR("Failed to load fallback font!");
+            return FALSE;
+        }
+        INFO("Fallback font loaded successfully");
+    }
+
 
     return TRUE;
+}
+
+font* renderer_get_default_font() {
+    return default_font;
 }
 
 void renderer_shutdown() {
@@ -45,6 +62,10 @@ void renderer_shutdown() {
         backend->shutdown(backend);
         kfree(backend, sizeof(renderer_backend), MEMORY_TAG_RENDERER);
         backend = 0;
+    }
+    if (default_font) {
+        renderer_destroy_font(default_font);
+        default_font = NULL;
     }
 }
 

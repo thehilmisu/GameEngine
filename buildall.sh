@@ -26,11 +26,14 @@ cp testbed/testbed bin/
 rm engine/libengine.so
 rm testbed/testbed
 
-# Copy assets to the bin directory
+# Copy testbed and engine assets to the bin directory
 echo "Copying assets to bin directory"
 mkdir -p bin/assets/fonts
 if [ -d "testbed/assets" ]; then
   cp -r testbed/assets/* bin/assets/
 fi
 
+if [ -d "engine/assets" ]; then
+  cp -r engine/assets/* bin/assets/
+fi
 echo "Successfully build all libs "

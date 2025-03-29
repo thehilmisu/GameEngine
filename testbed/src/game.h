@@ -28,7 +28,7 @@ typedef struct game_state {
     u16 last_mouse_y;
 
     // Text rendering
-    font* default_font;
+    font* font;
 } game_state;
 
 b8 game_on_event(u16 code, void* sender, void* listener_inst, event_context context);
