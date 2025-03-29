@@ -6,6 +6,7 @@
 #include "core/file_operations.h"
 #include <stdio.h>
 #include <math.h>
+#include "core/kstring.h" 
 
 #define CAMERA_SPEED 0.5f
 #define CAMERA_ROTATION_SPEED 1.5f
@@ -86,30 +87,50 @@ b8 game_on_event(u16 code, void *sender, void *listener_inst, event_context cont
         u16 key_code = context.data.u16[0];
         if (key_code == 'a' || key_code == 'A')
         {
-            // Move camera left
-            state->camera_position.x -= CAMERA_SPEED;
-            INFO("Camera moved left: %.2f", state->camera_position.x);
+            // Move camera left (strafe)
+            float yaw_rad = state->camera_rotation.y * 3.14159f / 180.0f;
+            state->camera_position.x -= CAMERA_SPEED * cosf(yaw_rad);
+            state->camera_position.z -= CAMERA_SPEED * sinf(yaw_rad);
+            INFO("Camera moved left: %.2f, %.2f, %.2f", 
+                 state->camera_position.x, 
+                 state->camera_position.y, 
+                 state->camera_position.z);
             return TRUE;
         }
         else if (key_code == 'd' || key_code == 'D')
         {
-            // Move camera right
-            state->camera_position.x += CAMERA_SPEED;
-            INFO("Camera moved right: %.2f", state->camera_position.x);
+            // Move camera right (strafe)
+            float yaw_rad = state->camera_rotation.y * 3.14159f / 180.0f;
+            state->camera_position.x += CAMERA_SPEED * cosf(yaw_rad);
+            state->camera_position.z += CAMERA_SPEED * sinf(yaw_rad);
+            INFO("Camera moved right: %.2f, %.2f, %.2f", 
+                 state->camera_position.x, 
+                 state->camera_position.y, 
+                 state->camera_position.z);
             return TRUE;
         }
         else if (key_code == 'w' || key_code == 'W')
         {
             // Move camera forward
-            state->camera_position.z += CAMERA_SPEED;
-            INFO("Camera moved forward: %.2f", state->camera_position.z);
+            float yaw_rad = state->camera_rotation.y * 3.14159f / 180.0f;
+            state->camera_position.x += CAMERA_SPEED * sinf(yaw_rad);
+            state->camera_position.z -= CAMERA_SPEED * cosf(yaw_rad);
+            INFO("Camera moved forward: %.2f, %.2f, %.2f", 
+                 state->camera_position.x, 
+                 state->camera_position.y, 
+                 state->camera_position.z);
             return TRUE;
         }
         else if (key_code == 's' || key_code == 'S')
         {
             // Move camera backward
-            state->camera_position.z -= CAMERA_SPEED;
-            INFO("Camera moved backward: %.2f", state->camera_position.z);
+            float yaw_rad = state->camera_rotation.y * 3.14159f / 180.0f;
+            state->camera_position.x -= CAMERA_SPEED * sinf(yaw_rad);
+            state->camera_position.z += CAMERA_SPEED * cosf(yaw_rad);
+            INFO("Camera moved backward: %.2f, %.2f, %.2f", 
+                 state->camera_position.x, 
+                 state->camera_position.y, 
+                 state->camera_position.z);
             return TRUE;
         }
         else if (key_code == 'q' || key_code == 'Q')
@@ -138,11 +159,29 @@ b8 game_on_event(u16 code, void *sender, void *listener_inst, event_context cont
     {
         u16 x = context.data.u16[0];
         u16 y = context.data.u16[1];
-
-        // Save current mouse position for next frame
+        if(state->mouse_pressed)
+        {
+            // Calculate delta movement since last position
+            f32 delta_x = (f32)(x - state->last_mouse_x);
+            f32 delta_y = (f32)(y - state->last_mouse_y);
+            
+            // Apply sensitivity factor to make rotation more controllable
+            const f32 sensitivity = 0.5f;
+            state->camera_rotation.y += delta_x * sensitivity; // Left/right movement rotates around Y axis
+            state->camera_rotation.x += delta_y * sensitivity; // Up/down movement rotates around X axis
+            
+            // Clamp X rotation to prevent camera flipping
+            if (state->camera_rotation.x > 89.0f) state->camera_rotation.x = 89.0f;
+            if (state->camera_rotation.x < -89.0f) state->camera_rotation.x = -89.0f;
+            
+            // Normalize Y rotation
+            while (state->camera_rotation.y > 360.0f) state->camera_rotation.y -= 360.0f;
+            while (state->camera_rotation.y < 0.0f) state->camera_rotation.y += 360.0f;
+             
+        }
         state->last_mouse_x = x;
         state->last_mouse_y = y;
-        return TRUE;
+        break;
     }
     case EVENT_CODE_MOUSE_WHEEL:
     {
@@ -155,13 +194,21 @@ b8 game_on_event(u16 code, void *sender, void *listener_inst, event_context cont
     case EVENT_CODE_BUTTON_PRESSED:
     {
         u16 button = context.data.u16[0];
-        INFO("Mouse button pressed: %d", button);
+        if(button == SDL_BUTTON_LEFT)
+        {
+            INFO("Mouse button pressed: %d", button);
+            state->mouse_pressed = TRUE;
+        }
         break;
     }
     case EVENT_CODE_BUTTON_RELEASED:
     {
         u16 button = context.data.u16[0];
-        INFO("Mouse button released: %d", button);
+        if(button == SDL_BUTTON_LEFT)
+        {
+            INFO("Mouse button released: %d", button);
+            state->mouse_pressed = FALSE;
+        }
         break;
     }
     }
@@ -199,6 +246,49 @@ void update_mesh_rotation(game_state *state, f32 delta_time, u32 mesh_id)
     }
 }
 
+void tilt_camera(game_state *state, f32 delta_time)
+{
+    // Set a fixed 45-degree tilt looking downward 
+    state->camera_position = (vec3){{0.0f, 5.0f, 5.0f}}; // Position camera higher and slightly back
+    state->camera_rotation.x = 45.0f;                     // Look down at 45 degrees
+    state->camera_rotation.y = 10.0f;                     // Slight rotation on Y for perspective
+    state->camera_rotation.z = 0.0f;                      // No roll
+    
+    INFO("Camera position: %.2f, %.2f, %.2f", 
+        state->camera_position.x, 
+        state->camera_position.y, 
+        state->camera_position.z);
+}
+
+void rotate_camera(game_state *state, f32 x, f32 y)
+{
+    // Calculate mouse movement delta from last position
+    f32 delta_x = (f32)(x - state->last_mouse_x);
+    f32 delta_y = (f32)(y - state->last_mouse_y);
+    
+    // Apply sensitivity factor to make rotation more controllable
+    const f32 sensitivity = 0.2f;
+    state->camera_rotation.y += delta_x * sensitivity; // Left/right movement rotates around Y axis
+    state->camera_rotation.x += delta_y * sensitivity; // Up/down movement rotates around X axis
+    
+    // Clamp X rotation to prevent camera flipping
+    if (state->camera_rotation.x > 89.0f) state->camera_rotation.x = 89.0f;
+    if (state->camera_rotation.x < -89.0f) state->camera_rotation.x = -89.0f;
+    
+    // Normalize Y rotation
+    while (state->camera_rotation.y > 360.0f) state->camera_rotation.y -= 360.0f;
+    while (state->camera_rotation.y < 0.0f) state->camera_rotation.y += 360.0f;
+    
+    // Calculate forward direction vector for debugging
+    #if 0   
+    float yaw_rad = state->camera_rotation.y * 3.14159f / 180.0f;
+    float pitch_rad = state->camera_rotation.x * 3.14159f / 180.0f;
+    float x_dir = sinf(yaw_rad) * cosf(pitch_rad);
+    float y_dir = -sinf(pitch_rad);
+    float z_dir = -cosf(yaw_rad) * cosf(pitch_rad);
+    #endif
+}
+
 b8 game_initialize(game *game_instance)
 {
     game_state *state = (game_state *)game_instance->state;
@@ -221,10 +311,11 @@ b8 game_initialize(game *game_instance)
     state->delta_time = 0.0f;
     state->clear_color = (vec4){{0.0f, 0.0f, 0.2f, 1.0f}};
     state->fps = 0.0f;
+    state->mouse_pressed = FALSE;
 
-    // Initialize camera with a better position to see 3D effects
-    state->camera_position = (vec3){{2.5f, 2.5f, 3.5f}};
-    state->camera_rotation = (vec3){{0.5f, 0.5f, 0.0f}};
+    // Initialize camera with logical position behind and above the cubes
+    state->camera_position = (vec3){{0.0f, 3.0f, 20.0f}}; // Behind and above looking toward origin
+    state->camera_rotation = (vec3){{15.0f, 0.0f, 0.0f}}; // 15-degree downward tilt
     state->last_mouse_x = 0;
     state->last_mouse_y = 0;
 
@@ -254,24 +345,21 @@ b8 game_initialize(game *game_instance)
         ERROR("Failed to create cube mesh!");
         return FALSE;
     }
-    // Create and add cube mesh command to the array
+    // Create and add cube mesh commands to the array
     render_mesh(state, cube_mesh, 
-                (vec3){{0.0f, 0.0f, 0.0f}},            // position at origin
-                (vec3){{0.0f, 0.0f, 0.0f}},            // no initial rotation 
-                (vec3){{1.0f, 1.0f, 1.0f}},            // normal size (1x)
-                (vec4){{1.0f, 1.0f, 1.0f, 1.0f}});     // white color
+                (vec3){{0.0f, 0.0f, 0.0f}},            // position at origin (0,0,0)
+                (vec3){{0.0f, 45.0f, 0.0f}},           // Y-axis rotation for visibility
+                (vec3){{1.0f, 1.0f, 1.0f}},            // uniform scale
+                (vec4){{1.0f, 0.0f, 0.0f, 1.0f}});     // bright red color
                 
     render_mesh(state, cube_mesh2, 
-                (vec3){{-3.0f, 0.0f, -2.0f}},          // position offset (left and back)
-                (vec3){{45.0f, 45.0f, 0.0f}},          // initial rotation of 45 degrees on X and Y
-                (vec3){{0.5f, 2.0f, 0.5f}},            // stretched in Y axis, smaller in X and Z
-                (vec4){{0.0f, 1.0f, 0.0f, 1.0f}});     // green color
+                (vec3){{-3.0f, 0.0f, 0.0f}},           // positioned 3 units left of origin
+                (vec3){{0.0f, 0.0f, 0.0f}},            // no rotation
+                (vec3){{1.0f, 2.0f, 1.0f}},            // taller cube
+                (vec4){{0.0f, 1.0f, 0.0f, 1.0f}});     // bright green color
 
     state->font = renderer_get_default_font();
-    render_text(state, "Hello, World!", (vec2){{50.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
-    render_text(state, "Hello, World!", (vec2){{100.0f, 100.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
-    render_text(state, "Hello, World!", (vec2){{150.0f, 150.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
-
+    
     return TRUE;
 }
 
@@ -283,15 +371,22 @@ b8 game_update(game *game_instance, f32 delta_time)
 
     state->delta_time = delta_time;
     state->fps = 1.0f / delta_time;
+    char fps_text[128]; 
+    sprintf(fps_text, "FPS: %.1f", state->fps);
+    render_text(state, fps_text, (vec2){{50.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
 
-    // Update all mesh rotations
-    u64 mesh_count = darray_length(state->mesh_commands);
-    for (u64 i = 0; i < mesh_count; ++i)
-    {
-        // Update the mesh with id 1
+    // Add camera info text
+    char camera_info[128];
+    sprintf(camera_info, "Camera: (%.1f, %.1f, %.1f)", 
+             state->camera_position.x, state->camera_position.y, state->camera_position.z);
+    render_text(state, camera_info, (vec2){{50.0f, 100.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+
+
+    // Update all mesh positions based on their IDs
+    for (u64 i = 0; i < darray_length(state->mesh_commands); i++) {
         if (state->mesh_commands[i].mesh->id == 1)
         {
-            update_mesh_rotation(state, delta_time, state->mesh_commands[i].mesh->id);
+            // update_mesh_rotation(state, delta_time, state->mesh_commands[i].mesh->id);
         }
     }
 
@@ -318,6 +413,18 @@ b8 game_render(game *game_instance, f32 delta_time)
     {
         current_packet.mesh_commands.commands = state->mesh_commands;
         current_packet.mesh_commands.count = (u32)mesh_count;
+        
+        // Debug output
+        #if 0
+        INFO("Rendering %llu meshes", mesh_count);
+        INFO("Camera position: (%.2f, %.2f, %.2f) rotation: (%.2f, %.2f, %.2f)",
+             state->camera_position.x, state->camera_position.y, state->camera_position.z,
+             state->camera_rotation.x, state->camera_rotation.y, state->camera_rotation.z);
+        #endif
+    }
+    else
+    {
+        ERROR("No meshes to render!");
     }
 
     // Set text commands from the darray
@@ -326,6 +433,10 @@ b8 game_render(game *game_instance, f32 delta_time)
     {
         current_packet.text_commands.commands = state->text_commands;
         current_packet.text_commands.count = (u32)text_count;
+    }
+    else
+    {
+        ERROR("No text to render!");
     }
 
     // Draw the frame
@@ -367,6 +478,17 @@ void game_shutdown(game *game_instance)
         }
     }
 
+    // Free text strings and destroy text commands
+    u64 text_count = darray_length(state->text_commands);
+    for (u64 i = 0; i < text_count; ++i)
+    {
+        if (state->text_commands[i].text)
+        {
+            free((void*)state->text_commands[i].text);
+            state->text_commands[i].text = NULL;
+        }
+    }
+
     // Destroy the darray
     if (state->mesh_commands)
     {
@@ -395,8 +517,15 @@ void render_mesh(game_state *state, mesh *mesh, vec3 position, vec3 rotation, ve
 
 void render_text(game_state *state, const char *text, vec2 position, vec4 color, f32 scale, font *font)
 {
+    // Create a persistent copy of the string
+    char *text_copy = string_duplicate(text);
+    if (!text_copy) {
+        ERROR("Failed to allocate memory for text");
+        return;
+    }
+    
     text_command text_cmd = {
-        .text = text,
+        .text = text_copy,
         .position = position,
         .color = color,
         .scale = scale,

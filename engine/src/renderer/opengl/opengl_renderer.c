@@ -14,76 +14,18 @@ void check_shader_error(u32 shader, const char* type);
 void check_program_error(u32 program);
 void check_gl_error(const char* op);
 
-// Vertex shader source
-static const char* vertex_shader_source = 
+// Standard 3D vertex shader using model-view-projection matrices
+static const char* standard_vertex_shader_source = 
     "#version 330 core\n"
     "layout (location = 0) in vec3 aPos;\n"
     "layout (location = 1) in vec4 aColor;\n"
     "out vec4 Color;\n"
-    "uniform vec3 cameraPos;\n"
-    "uniform vec3 rotation;\n"  // Changed from float to vec3 to handle all axes
-    "uniform vec3 meshPosition;\n" // Add mesh position uniform
-    "uniform vec3 meshScale;\n" // Add mesh scale uniform
+    "uniform mat4 model;\n"
+    "uniform mat4 view;\n"
+    "uniform mat4 projection;\n"
     "void main() {\n"
-    "    // Apply scale first\n"
-    "    vec3 pos = aPos * meshScale;\n"
-    "    \n"
-    "    // Convert degrees to radians for all three axes\n"
-    "    float rotX_rad = rotation.x * 3.14159 / 180.0;\n"
-    "    float rotY_rad = rotation.y * 3.14159 / 180.0;\n"
-    "    float rotZ_rad = rotation.z * 3.14159 / 180.0;\n"
-    "    \n"
-    "    // Rotation around X axis\n"
-    "    float cosX = cos(rotX_rad);\n"
-    "    float sinX = sin(rotX_rad);\n"
-    "    vec3 rotatedX = vec3(\n"
-    "        pos.x,\n"
-    "        pos.y * cosX - pos.z * sinX,\n"
-    "        pos.y * sinX + pos.z * cosX\n"
-    "    );\n"
-    "    \n"
-    "    // Rotation around Y axis\n"
-    "    float cosY = cos(rotY_rad);\n"
-    "    float sinY = sin(rotY_rad);\n"
-    "    vec3 rotatedXY = vec3(\n"
-    "        rotatedX.x * cosY + rotatedX.z * sinY,\n"
-    "        rotatedX.y,\n"
-    "        -rotatedX.x * sinY + rotatedX.z * cosY\n"
-    "    );\n"
-    "    \n"
-    "    // Rotation around Z axis\n"
-    "    float cosZ = cos(rotZ_rad);\n"
-    "    float sinZ = sin(rotZ_rad);\n"
-    "    vec3 rotatedXYZ = vec3(\n"
-    "        rotatedXY.x * cosZ - rotatedXY.y * sinZ,\n"
-    "        rotatedXY.x * sinZ + rotatedXY.y * cosZ,\n"
-    "        rotatedXY.z\n"
-    "    );\n"
-    "    \n"
-    "    // Add mesh position after rotation\n"
-    "    rotatedXYZ.x += meshPosition.x;\n"
-    "    rotatedXYZ.y += meshPosition.y;\n"
-    "    rotatedXYZ.z += meshPosition.z;\n"
-    "    \n"
-    "    // NOW apply camera position to move objects relative to camera\n"
-    "    // (AFTER rotation, so rotation happens around object center)\n"
-    "    rotatedXYZ.x -= cameraPos.x;\n"
-    "    rotatedXYZ.y -= cameraPos.y;\n"
-    "    \n"
-    "    // Make Z movement more pronounced with perspective effect\n"
-    "    float z_offset = 10.0;\n"
-    "    float z_pos = z_offset - cameraPos.z;\n"
-    "    rotatedXYZ.z -= z_pos;\n"
-    "    \n"
-    "    // Create perspective effect manually\n"
-    "    float scale_factor = 5.0;\n"
-    "    float perspective = 10.0 / (10.0 + z_pos);\n"
-    "    \n"
-    "    // Apply perspective projection\n"
-    "    gl_Position = vec4(rotatedXYZ.x * perspective / scale_factor, \n"
-    "                       rotatedXYZ.y * perspective / scale_factor, \n"
-    "                       rotatedXYZ.z / 20.0, \n"
-    "                       1.0);\n"
+    "    // Apply model-view-projection transformation\n"
+    "    gl_Position = projection * view * model * vec4(aPos, 1.0);\n"
     "    Color = aColor;\n"
     "}\0";
 
@@ -182,7 +124,7 @@ b8 opengl_renderer_backend_initialize(renderer_backend* backend, const char* app
 
     // Create and compile vertex shader
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, &vertex_shader_source, NULL);
+    glShaderSource(vertex_shader, 1, &standard_vertex_shader_source, NULL);
     glCompileShader(vertex_shader);
 
     // Check for vertex shader compilation errors
@@ -284,6 +226,29 @@ b8 opengl_renderer_backend_initialize(renderer_backend* backend, const char* app
     // Cleanup shaders
     glDeleteShader(text_vertex_shader);
     glDeleteShader(text_fragment_shader);
+    
+    // Get window size for proper aspect ratio
+    int width, height;
+    SDL_GetWindowSize(state->window, &width, &height);
+    float aspect_ratio = (float)width / (float)height;
+    
+    // Initialize projection matrix with 45 degree FOV and extended far plane
+    create_perspective_matrix(&state->projection_matrix, 45.0f, aspect_ratio, 0.1f, 1000.0f);
+    
+    // Initialize view and model matrices to identity
+    state->view_matrix = (mat4){
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+    
+    state->model_matrix = (mat4){
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
 
     return TRUE;
 }
@@ -309,7 +274,12 @@ void opengl_renderer_backend_shutdown(renderer_backend* backend) {
 }
 
 void opengl_renderer_backend_resized(renderer_backend* backend, u16 width, u16 height) {
+    opengl_renderer_state* state = (opengl_renderer_state*)backend->internal_state;
     glViewport(0, 0, width, height);
+    
+    // Update projection matrix with new aspect ratio
+    float aspect_ratio = (float)width / (float)height;
+    create_perspective_matrix(&state->projection_matrix, 45.0f, aspect_ratio, 0.1f, 1000.0f);
 }
 
 b8 opengl_renderer_backend_begin_frame(renderer_backend* backend, render_packet* packet) {
@@ -323,6 +293,11 @@ b8 opengl_renderer_backend_begin_frame(renderer_backend* backend, render_packet*
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    // Update view matrix with current camera data
+    if (packet) {
+        create_view_matrix(&state->view_matrix, packet->camera_position, packet->camera_rotation);
+    }
 
     return TRUE;
 }
@@ -387,56 +362,49 @@ void opengl_renderer_draw_mesh(mesh* m) {
     // Use the shader program
     glUseProgram(state->shader_program);
     
-    // Set the camera position uniform
-    GLint camera_pos_loc = glGetUniformLocation(state->shader_program, "cameraPos");
+    // Get uniform locations
+    GLint model_loc = glGetUniformLocation(state->shader_program, "model");
+    GLint view_loc = glGetUniformLocation(state->shader_program, "view");
+    GLint proj_loc = glGetUniformLocation(state->shader_program, "projection");
+    
     if (state->current_packet) {
-        glUniform3f(camera_pos_loc, 
-                   state->current_packet->camera_position.x,
-                   state->current_packet->camera_position.y,
-                   state->current_packet->camera_position.z
-                   );
+        // Create and set the view matrix based on camera position and rotation
+        create_view_matrix(&state->view_matrix, 
+                          state->current_packet->camera_position,
+                          state->current_packet->camera_rotation);
         
-        // Find the matching mesh command to get both rotation and position values
+        // Set the view matrix uniform
+        glUniformMatrix4fv(view_loc, 1, GL_FALSE, (const GLfloat*)&state->view_matrix);
+        
+        // Set the projection matrix uniform
+        glUniformMatrix4fv(proj_loc, 1, GL_FALSE, (const GLfloat*)&state->projection_matrix);
+        
+        // Find the matching mesh command to get position, rotation and scale values
         for (u32 i = 0; i < state->current_packet->mesh_commands.count; i++) {
             if (state->current_packet->mesh_commands.commands[i].mesh == m) {
-                // Pass rotation components (x, y, z) to the shader
-                GLint rotation_loc = glGetUniformLocation(state->shader_program, "rotation");
-                glUniform3f(rotation_loc, 
-                           state->current_packet->mesh_commands.commands[i].rotation.x,
-                           state->current_packet->mesh_commands.commands[i].rotation.y,
-                           state->current_packet->mesh_commands.commands[i].rotation.z);
+                // Create model matrix from mesh properties
+                create_model_matrix(&state->model_matrix,
+                                   state->current_packet->mesh_commands.commands[i].position,
+                                   state->current_packet->mesh_commands.commands[i].rotation,
+                                   state->current_packet->mesh_commands.commands[i].scale);
                 
-                // Pass mesh position components (x, y, z) to the shader
-                GLint mesh_pos_loc = glGetUniformLocation(state->shader_program, "meshPosition");
-                glUniform3f(mesh_pos_loc, 
-                           state->current_packet->mesh_commands.commands[i].position.x,
-                           state->current_packet->mesh_commands.commands[i].position.y,
-                           state->current_packet->mesh_commands.commands[i].position.z);
-                
-                // Pass mesh scale components (x, y, z) to the shader
-                GLint mesh_scale_loc = glGetUniformLocation(state->shader_program, "meshScale");
-                glUniform3f(mesh_scale_loc, 
-                           state->current_packet->mesh_commands.commands[i].scale.x,
-                           state->current_packet->mesh_commands.commands[i].scale.y,
-                           state->current_packet->mesh_commands.commands[i].scale.z);
+                // Set the model matrix uniform
+                glUniformMatrix4fv(model_loc, 1, GL_FALSE, (const GLfloat*)&state->model_matrix);
                 break;
             }
         }
     } else {
-        // Default values when no packet is available
-        glUniform3f(camera_pos_loc, 0.0f, 0.0f, 0.0f);
+        // Set identity matrices for model, view and projection when no packet is available
+        mat4 identity = {
+            1.0f, 0.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f, 0.0f,
+            0.0f, 0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 0.0f, 1.0f
+        };
         
-        // Default rotation value (all axes)
-        GLint rotation_loc = glGetUniformLocation(state->shader_program, "rotation");
-        glUniform3f(rotation_loc, 0.0f, 0.0f, 0.0f);
-        
-        // Default position value (origin)
-        GLint mesh_pos_loc = glGetUniformLocation(state->shader_program, "meshPosition");
-        glUniform3f(mesh_pos_loc, 0.0f, 0.0f, 0.0f);
-        
-        // Default scale value (unit scale)
-        GLint mesh_scale_loc = glGetUniformLocation(state->shader_program, "meshScale");
-        glUniform3f(mesh_scale_loc, 1.0f, 1.0f, 1.0f);
+        glUniformMatrix4fv(model_loc, 1, GL_FALSE, (const GLfloat*)&identity);
+        glUniformMatrix4fv(view_loc, 1, GL_FALSE, (const GLfloat*)&identity);
+        glUniformMatrix4fv(proj_loc, 1, GL_FALSE, (const GLfloat*)&identity);
     }
     
     // Bind VAO and draw
@@ -843,4 +811,157 @@ void check_program_error(u32 program) {
         glGetProgramInfoLog(program, 1024, NULL, info_log);
         ERROR("Shader program linking error: %s", info_log);
     }
+}
+
+// Matrix utility functions
+void create_model_matrix(mat4* matrix, vec3 position, vec3 rotation, vec3 scale) {
+    // Start with identity matrix
+    *matrix = mat4_identity();
+    
+    // Convert rotation to radians
+    float rotX = rotation.x * 3.14159f / 180.0f;
+    float rotY = rotation.y * 3.14159f / 180.0f;
+    float rotZ = rotation.z * 3.14159f / 180.0f;
+    
+    // Pre-calculate sines and cosines
+    float cosX = cosf(rotX);
+    float sinX = sinf(rotX);
+    float cosY = cosf(rotY);
+    float sinY = sinf(rotY);
+    float cosZ = cosf(rotZ);
+    float sinZ = sinf(rotZ);
+    
+    // X-axis rotation matrix
+    mat4 rx = {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, cosX, -sinX, 0.0f,
+        0.0f, sinX, cosX, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+    
+    // Y-axis rotation matrix
+    mat4 ry = {
+        cosY, 0.0f, sinY, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        -sinY, 0.0f, cosY, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+    
+    // Z-axis rotation matrix
+    mat4 rz = {
+        cosZ, -sinZ, 0.0f, 0.0f,
+        sinZ, cosZ, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+    
+    // Scale matrix
+    mat4 s = {
+        scale.x, 0.0f, 0.0f, 0.0f,
+        0.0f, scale.y, 0.0f, 0.0f,
+        0.0f, 0.0f, scale.z, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+    
+    // Translation matrix
+    mat4 t = {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        position.x, position.y, position.z, 1.0f
+    };
+    
+    // Combined matrix: T * Rz * Ry * Rx * S
+    // Apply transformations in sequence using existing mat4_mul
+    mat4 result = *matrix;
+    result = mat4_mul(result, s);     // Apply scale
+    result = mat4_mul(result, rx);    // Apply X rotation
+    result = mat4_mul(result, ry);    // Apply Y rotation
+    result = mat4_mul(result, rz);    // Apply Z rotation
+    result = mat4_mul(result, t);     // Apply translation
+    
+    *matrix = result;
+}
+
+void create_view_matrix(mat4* matrix, vec3 camera_pos, vec3 camera_rotation) {
+    // Start with identity matrix
+    *matrix = mat4_identity();
+    
+    // Convert rotation to radians
+    float rotX = camera_rotation.x * 3.14159f / 180.0f;
+    float rotY = camera_rotation.y * 3.14159f / 180.0f;
+    float rotZ = camera_rotation.z * 3.14159f / 180.0f;
+    
+    // Pre-calculate sines and cosines
+    float cosX = cosf(rotX);
+    float sinX = sinf(rotX);
+    float cosY = cosf(rotY);
+    float sinY = sinf(rotY);
+    float cosZ = cosf(rotZ);
+    float sinZ = sinf(rotZ);
+    
+    // Camera rotation matrices - first create rotation matrices
+    // Order matters: Y (yaw) rotation first, then X (pitch), then Z (roll)
+    
+    // Y-axis rotation matrix (yaw - look left/right)
+    mat4 ry = {
+        cosY, 0.0f, -sinY, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        sinY, 0.0f, cosY, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+    
+    // X-axis rotation matrix (pitch - look up/down)
+    mat4 rx = {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, cosX, sinX, 0.0f,
+        0.0f, -sinX, cosX, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+    
+    // Z-axis rotation matrix (roll - tilt head)
+    mat4 rz = {
+        cosZ, sinZ, 0.0f, 0.0f,
+        -sinZ, cosZ, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, 0.0f, 0.0f, 1.0f
+    };
+    
+    // Translation matrix (move to camera position)
+    mat4 t = {
+        1.0f, 0.0f, 0.0f, 0.0f,
+        0.0f, 1.0f, 0.0f, 0.0f,
+        0.0f, 0.0f, 1.0f, 0.0f,
+        -camera_pos.x, -camera_pos.y, -camera_pos.z, 1.0f
+    };
+    
+    // Combined rotation matrix (apply rotations in YXZ order)
+    mat4 rotation = mat4_identity();
+    rotation = mat4_mul(rotation, ry);   // First rotate around Y
+    rotation = mat4_mul(rotation, rx);   // Then rotate around X
+    rotation = mat4_mul(rotation, rz);   // Finally rotate around Z
+    
+    // Final view matrix: first translate, then rotate
+    *matrix = mat4_mul(rotation, t);
+}
+
+void create_perspective_matrix(mat4* matrix, float fov_degrees, float aspect_ratio, float near_plane, float far_plane) {
+    // Convert FOV from degrees to radians
+    float fov_radians = fov_degrees * 3.14159f / 180.0f;
+    
+    // Calculate perspective matrix elements
+    float f = 1.0f / tanf(fov_radians * 0.5f);
+    float nf = 1.0f / (near_plane - far_plane);
+    
+    // Create the perspective projection matrix
+    *matrix = (mat4){
+        f / aspect_ratio, 0.0f, 0.0f, 0.0f,
+        0.0f, f, 0.0f, 0.0f,
+        0.0f, 0.0f, (far_plane + near_plane) * nf, -1.0f,
+        0.0f, 0.0f, 2.0f * far_plane * near_plane * nf, 0.0f
+    };
+    
+    // Debug output 
+    INFO("Created perspective matrix with FOV=%.1f°, aspect=%.2f, near=%.2f, far=%.2f",
+         fov_degrees, aspect_ratio, near_plane, far_plane);
 } 

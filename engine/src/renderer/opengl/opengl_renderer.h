@@ -10,6 +10,9 @@
 #include FT_FREETYPE_H
 #include "core/math_functions.h"
 
+// Forward declares
+typedef struct FT_LibraryRec_ *FT_Library;
+
 typedef struct opengl_renderer_state {
     struct platform_state* plat_state;
     SDL_Window* window;
@@ -23,7 +26,17 @@ typedef struct opengl_renderer_state {
     f32 rotation;  // Add rotation state
     render_packet* current_packet;  // Add current packet pointer
     FT_Library ft_library;         // FreeType library instance
+    
+    // Matrices for rendering
+    mat4 projection_matrix;
+    mat4 view_matrix;
+    mat4 model_matrix;
 } opengl_renderer_state;
+
+// Matrix helper functions
+void create_model_matrix(mat4* matrix, vec3 position, vec3 rotation, vec3 scale);
+void create_view_matrix(mat4* matrix, vec3 camera_pos, vec3 camera_rotation);
+void create_perspective_matrix(mat4* matrix, float fov_degrees, float aspect_ratio, float near_plane, float far_plane);
 
 b8 opengl_renderer_backend_initialize(renderer_backend* backend, const char* application_name, struct platform_state* plat_state);
 void opengl_renderer_backend_shutdown(renderer_backend* backend);
