@@ -23,8 +23,10 @@ static const char* vertex_shader_source =
     "uniform vec3 cameraPos;\n"
     "uniform vec3 rotation;\n"  // Changed from float to vec3 to handle all axes
     "uniform vec3 meshPosition;\n" // Add mesh position uniform
+    "uniform vec3 meshScale;\n" // Add mesh scale uniform
     "void main() {\n"
-    "    vec3 pos = aPos;\n"
+    "    // Apply scale first\n"
+    "    vec3 pos = aPos * meshScale;\n"
     "    \n"
     "    // Convert degrees to radians for all three axes\n"
     "    float rotX_rad = rotation.x * 3.14159 / 180.0;\n"
@@ -124,7 +126,7 @@ static const char* text_fragment_shader_source =
 "   FragColor = vec4(Color.rgb, alpha);\n"
 "}\n";
 
-static u32 next_mesh_id = 1;
+static u32 next_mesh_id = 0;
 static opengl_renderer_state* global_renderer_state = NULL;
 
 // Paths to common system fonts for fallback
@@ -337,6 +339,7 @@ mesh* opengl_renderer_create_mesh(const vertex* vertices, u32 vertex_count) {
     m->vertex_count = vertex_count;
     m->vertex_buffer_size = sizeof(vertex) * vertex_count;
     m->vertices = kallocate(m->vertex_buffer_size, MEMORY_TAG_RENDERER);
+    m->id = next_mesh_id++;
     kcopy_memory(m->vertices, vertices, m->vertex_buffer_size);
 
     // Create and bind VAO
@@ -409,6 +412,13 @@ void opengl_renderer_draw_mesh(mesh* m) {
                            state->current_packet->mesh_commands.commands[i].position.x,
                            state->current_packet->mesh_commands.commands[i].position.y,
                            state->current_packet->mesh_commands.commands[i].position.z);
+                
+                // Pass mesh scale components (x, y, z) to the shader
+                GLint mesh_scale_loc = glGetUniformLocation(state->shader_program, "meshScale");
+                glUniform3f(mesh_scale_loc, 
+                           state->current_packet->mesh_commands.commands[i].scale.x,
+                           state->current_packet->mesh_commands.commands[i].scale.y,
+                           state->current_packet->mesh_commands.commands[i].scale.z);
                 break;
             }
         }
@@ -423,6 +433,10 @@ void opengl_renderer_draw_mesh(mesh* m) {
         // Default position value (origin)
         GLint mesh_pos_loc = glGetUniformLocation(state->shader_program, "meshPosition");
         glUniform3f(mesh_pos_loc, 0.0f, 0.0f, 0.0f);
+        
+        // Default scale value (unit scale)
+        GLint mesh_scale_loc = glGetUniformLocation(state->shader_program, "meshScale");
+        glUniform3f(mesh_scale_loc, 1.0f, 1.0f, 1.0f);
     }
     
     // Bind VAO and draw
