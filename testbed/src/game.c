@@ -376,16 +376,13 @@ b8 game_update(game *game_instance, f32 delta_time)
 
     state->delta_time = delta_time;
     state->fps = 1.0f / delta_time;
-    char fps_text[128]; 
-    sprintf(fps_text, "FPS: %.1f", state->fps);
-    render_text(state, fps_text, 0, (vec2){{50.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+    char text[128]; 
+    sprintf(text, "FPS: %.1f", state->fps);
+    render_text(state, text, 0, (vec2){{50.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
 
-    // Add camera info text
-    char camera_info[128];
-    sprintf(camera_info, "Camera: (%.1f, %.1f, %.1f)", 
-             state->camera_position.x, state->camera_position.y, state->camera_position.z);
-    render_text(state, camera_info, 1, (vec2){{50.0f, 100.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
-
+    sprintf(text, "Camera: (%.1f, %.1f, %.1f)", 
+            state->camera_position.x, state->camera_position.y, state->camera_position.z);
+    render_text(state, text, 1, (vec2){{50.0f, 100.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
 
     // Update all mesh positions based on their IDs
     for (u64 i = 0; i < darray_length(state->mesh_commands); i++) {
