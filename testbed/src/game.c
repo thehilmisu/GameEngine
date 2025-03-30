@@ -373,13 +373,13 @@ b8 game_update(game *game_instance, f32 delta_time)
     state->fps = 1.0f / delta_time;
     char fps_text[128]; 
     sprintf(fps_text, "FPS: %.1f", state->fps);
-    render_text(state, fps_text, (vec2){{50.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+    render_text(state, fps_text, 0, (vec2){{50.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
 
     // Add camera info text
     char camera_info[128];
     sprintf(camera_info, "Camera: (%.1f, %.1f, %.1f)", 
              state->camera_position.x, state->camera_position.y, state->camera_position.z);
-    render_text(state, camera_info, (vec2){{50.0f, 100.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+    render_text(state, camera_info, 1, (vec2){{50.0f, 100.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
 
 
     // Update all mesh positions based on their IDs
@@ -478,17 +478,6 @@ void game_shutdown(game *game_instance)
         }
     }
 
-    // Free text strings and destroy text commands
-    u64 text_count = darray_length(state->text_commands);
-    for (u64 i = 0; i < text_count; ++i)
-    {
-        if (state->text_commands[i].text)
-        {
-            free((void*)state->text_commands[i].text);
-            state->text_commands[i].text = NULL;
-        }
-    }
-
     // Destroy the darray
     if (state->mesh_commands)
     {
@@ -515,7 +504,7 @@ void render_mesh(game_state *state, mesh *mesh, vec3 position, vec3 rotation, ve
          position.x, position.y, position.z, darray_length(state->mesh_commands));
 }
 
-void render_text(game_state *state, const char *text, vec2 position, vec4 color, f32 scale, font *font)
+void render_text(game_state *state, const char *text, u32 text_id, vec2 position, vec4 color, f32 scale, font *font)
 {
     // Create a persistent copy of the string
     char *text_copy = string_duplicate(text);
@@ -523,12 +512,29 @@ void render_text(game_state *state, const char *text, vec2 position, vec4 color,
         ERROR("Failed to allocate memory for text");
         return;
     }
-    
     text_command text_cmd = {
         .text = text_copy,
+        .text_id = text_id,
         .position = position,
         .color = color,
         .scale = scale,
         .font = font};
-    darray_push(state->text_commands, text_cmd);
+
+    u64 text_count = darray_length(state->text_commands);
+    b8 found = FALSE;
+    u32 index = 0;
+    for (u64 i = 0; i < text_count; i++)
+    {
+        if (state->text_commands[i].text_id == text_id)
+        {
+            state->text_commands[i] = text_cmd;
+            found = TRUE;
+            index = i;
+            break;
+        }
+    }
+    if (!found)
+    {
+        darray_push(state->text_commands, text_cmd);
+    }
 }

@@ -57,6 +57,7 @@ typedef struct mesh {
 // Command structures
 typedef struct text_command {
     const char* text;
+    u32 text_id;
     vec2 position;
     vec4 color;
     f32 scale;
