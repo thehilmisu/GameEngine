@@ -1,6 +1,6 @@
 #include "set.h"
-#include "kmemory.h"
-#include "kstring.h"
+#include "core/kmemory.h"
+#include "core/kstring.h"
 #include <string.h>
 
 static u64 _set_hash(const void* value_ptr, u64 stride) {
