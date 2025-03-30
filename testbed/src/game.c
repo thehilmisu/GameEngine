@@ -358,8 +358,13 @@ b8 game_initialize(game *game_instance)
                 (vec3){{1.0f, 2.0f, 1.0f}},            // taller cube
                 (vec4){{0.0f, 1.0f, 0.0f, 1.0f}});     // bright green color
 
-    state->font = renderer_get_default_font();
-    
+    // Create a new font
+    state->font = renderer_create_font("assets/fonts/NotoMono-Regular.ttf", 18);
+    if (!state->font) {
+        ERROR("Failed to create font!");
+        return FALSE;
+    }
+
     return TRUE;
 }
 

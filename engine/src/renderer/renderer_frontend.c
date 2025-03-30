@@ -49,7 +49,6 @@ b8 renderer_initialize(const char* application_name, struct platform_state* plat
         INFO("Fallback font loaded successfully");
     }
 
-
     return TRUE;
 }
 
