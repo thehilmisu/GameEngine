@@ -6,7 +6,7 @@ echo "Building engine shared library..."
 mkdir -p obj
 
 # Compile each source file
-for file in src/*.c src/core/*.c src/platform/*.c src/renderer/*.c src/renderer/opengl/*.c src/containers/*.c src/shaders/*.c; do
+for file in src/*.c src/core/*.c src/platform/*.c src/renderer/*.c src/renderer/opengl/*.c src/containers/*.c src/shaders/*.c src/models/*.c; do
     if [ -f "$file" ]; then
         obj_file="obj/$(basename ${file%.c}.o)"
         clang -g -fPIC -c "$file" -o "$obj_file" -I/usr/include/SDL2 -I/usr/include/freetype2 -Isrc -D_GNU_SOURCE=1 -D_REENTRANT

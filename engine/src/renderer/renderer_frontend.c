@@ -22,10 +22,14 @@ b8 renderer_initialize(const char* application_name, struct platform_state* plat
     backend->shutdown = opengl_renderer_backend_shutdown;
     backend->begin_frame = opengl_renderer_backend_begin_frame;
     backend->end_frame = opengl_renderer_backend_end_frame;
+    backend->draw_frame = opengl_renderer_draw_frame;
     backend->resized = opengl_renderer_backend_resized;
     backend->create_mesh = opengl_renderer_create_mesh;
     backend->destroy_mesh = opengl_renderer_destroy_mesh;
     backend->draw_mesh = opengl_renderer_draw_mesh;
+    backend->create_model = opengl_renderer_create_model;
+    backend->destroy_model = opengl_renderer_destroy_model;
+    backend->draw_model = opengl_renderer_draw_model;
     backend->create_font = opengl_renderer_create_font;
     backend->create_fallback_font = opengl_renderer_create_fallback_font;
     backend->destroy_font = opengl_renderer_destroy_font;
@@ -143,6 +147,31 @@ void renderer_on_resized(u16 width, u16 height) {
         WARN("renderer_on_resized called with no active renderer backend!");
     }
 }
+// Model functions
+model* renderer_create_model(const char* model_path) {
+    if (!backend) {
+        ERROR("Renderer backend not initialized!");
+        return NULL;
+    }
+    INFO("Frontend: Creating model from path: %s", model_path);
+    return backend->create_model(model_path);
+}
+
+void renderer_destroy_model(model* m) {
+    if (!backend) {
+        ERROR("Renderer backend not initialized!");
+        return;
+    }
+    backend->destroy_model(m);
+}
+
+void renderer_draw_model(model* m) {
+    if (!backend) {
+        ERROR("Renderer backend not initialized!");
+        return;
+    }
+    backend->draw_model(m);
+}   
 
 // Mesh functions
 mesh* renderer_create_mesh(const vertex* vertices, u32 vertex_count) {

@@ -365,6 +365,18 @@ b8 game_initialize(game *game_instance)
         return FALSE;
     }
 
+    // Create a new model
+     state->model = renderer_create_model("assets/models/cube.obj");
+     render_mesh(state, state->model->mesh, 
+                (vec3){{-5.0f, 0.0f, 0.0f}},            // position at origin (0,0,0)
+                (vec3){{0.0f, 45.0f, 0.0f}},           // Y-axis rotation for visibility
+                (vec3){{1.0f, 1.0f, 1.0f}},            // uniform scale
+                (vec4){{1.0f, 0.0f, 0.0f, 1.0f}});     // bright red color
+    // if (!state->model) {
+    //     ERROR("Failed to create model!");
+    //     return FALSE;
+    // }
+
     return TRUE;
 }
 
@@ -440,6 +452,8 @@ b8 game_render(game *game_instance, f32 delta_time)
     {
         ERROR("No text to render!");
     }
+    // Draw the model
+    // renderer_draw_model(state->model);
 
     // Draw the frame
     renderer_draw_frame(&current_packet);

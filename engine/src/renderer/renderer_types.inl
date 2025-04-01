@@ -54,6 +54,8 @@ typedef struct mesh {
     GLuint vbo;
 } mesh;
 
+
+
 // Command structures
 typedef struct text_command {
     const char* text;
@@ -72,6 +74,17 @@ typedef struct mesh_command {
     mesh* mesh;
 } mesh_command;
 
+// Model data structure
+typedef struct model {
+    u32 id;                // Unique model ID
+    u32 vertex_count;      // Number of vertices
+    u32 index_count;       // Number of indices (if indexed)
+    vertex* vertices;      // Array of vertices
+    u32* indices;          // Array of indices (if indexed)
+    b8 is_indexed;         // Whether the model uses indexed geometry
+    char name[64];         // Model name
+    mesh* mesh;
+} model;
 // Render packet structure
 typedef struct render_packet {
     f32 delta_time;  // Time since last frame
@@ -83,6 +96,7 @@ typedef struct render_packet {
         mesh_command* commands;
         u32 count;
     } mesh_commands;
+    model* model;
     vec3 camera_position;
     vec3 camera_rotation;
 } render_packet;
@@ -105,6 +119,11 @@ typedef struct renderer_backend {
     void (*destroy_mesh)(mesh* m);
     void (*draw_mesh)(mesh* m);
     mesh* (*get_mesh)(u32 mesh_id);
+
+    // Model functions
+    model* (*create_model)(const char* model_path);
+    void (*destroy_model)(model* m);
+    void (*draw_model)(model* m);
 
     // Text functions
     font* (*create_font)(const char* font_path, u32 font_size);

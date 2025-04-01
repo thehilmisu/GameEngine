@@ -29,7 +29,9 @@
      "TRANSFORM  ",
      "ENTITY     ",
      "ENTITY_NODE",
-     "SCENE      "};
+     "SCENE      ",
+     "MODEL      "
+ };
  
  static struct memory_stats stats;
  

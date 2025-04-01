@@ -15,6 +15,9 @@ typedef struct game_state {
     f32 fps;
     vec4 clear_color;  // Color to clear the screen with
 
+    // Models
+    model* model;
+
     // Meshes
     mesh_command* mesh_commands;  // darray of mesh commands
     

@@ -6,6 +6,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <stddef.h>  // For NULL
+// Forward declare model struct
+typedef struct model model;
 #include "platform/platform.h"
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -56,3 +58,8 @@ font* opengl_renderer_create_font(const char* font_path, u32 font_size);
 font* opengl_renderer_create_fallback_font(u32 font_size);
 void opengl_renderer_destroy_font(font* f);
 void opengl_renderer_draw_text(font* f, const char* text, vec2 position, vec4 color, f32 scale); 
+
+// Model functions
+model* opengl_renderer_create_model(const char* model_path);
+void opengl_renderer_destroy_model(model* m);
+void opengl_renderer_draw_model(model* m);

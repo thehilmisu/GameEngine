@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "renderer_frontend.h": "c"
+        "renderer_frontend.h": "c",
+        "kstring.h": "c"
     }
 }

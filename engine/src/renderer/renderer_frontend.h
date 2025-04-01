@@ -2,6 +2,7 @@
  
 #include "renderer_types.inl"
 #include "core/kmemory.h"
+#include "models/model.h"
 #include "core/logger.h"
 #include "platform/platform.h"
  
@@ -21,6 +22,11 @@ b8 renderer_draw_frame(render_packet* packet);
 mesh* renderer_create_mesh(const vertex* vertices, u32 vertex_count);
 void renderer_destroy_mesh(mesh* m);
 void renderer_draw_mesh(mesh* m);
+
+// Model functions
+model* renderer_create_model(const char* model_path);
+void renderer_destroy_model(model* m);
+void renderer_draw_model(model* m);
 
 // Text functions
 font* renderer_create_font(const char* font_path, u32 font_size);

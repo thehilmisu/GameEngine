@@ -5,6 +5,7 @@
 #include "core/logger.h"
 #include "core/file_operations.h"
 #include "platform/platform.h"
+#include "models/model.h"
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 
@@ -325,6 +326,48 @@ void opengl_renderer_draw_mesh(mesh* m) {
     
     // Unbind
     glBindVertexArray(0);
+}
+
+// Model functions      
+model* opengl_renderer_create_model(const char* model_path) {
+    INFO("%s Creating model from path: %s", __FILE__, model_path);
+    model* m = model_load_obj(model_path);
+    if (!m) {
+        ERROR("Failed to load model from path: %s", model_path);
+        return NULL;
+    }
+    INFO("%s Model '%s' loaded successfully with ID %u", __FILE__, m->name, m->id);
+    return m;
+}
+
+void opengl_renderer_destroy_model(model* m) {
+    if (!m) {
+        ERROR("Cannot destroy NULL model");
+    }else{
+        // Destroy the mesh
+        opengl_renderer_destroy_mesh(m->mesh);
+    }
+
+    // Free the model struct itself
+    // kfree(m, sizeof(model), MEMORY_TAG_RENDERER);
+}
+
+void opengl_renderer_draw_model(model* m) {
+    INFO("%s Drawing model: %s", __FILE__, m->name);
+    if (!m) {
+        ERROR("Cannot draw NULL model");
+    }else{
+        // Draw the mesh
+        // mesh* mesh = m->mesh;
+        // mesh->id = 8;
+        // mesh->vertices = m->vertices;
+        // mesh->vertex_count = m->vertex_count;
+        // mesh->vertex_buffer_size = m->vertex_buffer_size;
+        // mesh->vao = m->vao;
+        // mesh->vbo = m->vbo; 
+
+        // opengl_renderer_draw_mesh(m->mesh_cmd->mesh);
+    }
 }
 
 mesh* opengl_renderer_get_mesh(u32 mesh_id) {
