@@ -16,7 +16,7 @@ typedef struct game_state {
     vec4 clear_color;  // Color to clear the screen with
 
     // Models
-    model* model;
+    model_command* model_commands;  // darray of model commands
 
     // Meshes
     mesh_command* mesh_commands;  // darray of mesh commands
@@ -45,7 +45,8 @@ void game_shutdown(game* game_instance);
 void rotate_camera(game_state *state, f32 x, f32 y);
 void tilt_camera(game_state *state, f32 delta_time);
 // Rendering functions
-void render_mesh(game_state* state, mesh* mesh, vec3 position, vec3 rotation, vec3 scale, vec4 color);
+void add_mesh_to_render_packet(game_state* state, mesh* mesh, vec3 position, vec3 rotation, vec3 scale, vec4 color);
+void add_model_to_render_packet(game_state *state, model *model, vec3 position, vec3 rotation, vec3 scale, vec4 color);
 void render_text(game_state* state, const char* text, u32 text_id, vec2 position, vec4 color, f32 scale, font* font);
 
 #endif

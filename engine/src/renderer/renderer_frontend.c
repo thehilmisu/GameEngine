@@ -130,6 +130,13 @@ b8 renderer_draw_frame(render_packet* packet) {
             backend->draw_mesh(packet->mesh_commands.commands[i].mesh);
         }
     }
+
+    // Draw model commands
+    if (packet->model_commands.commands && packet->model_commands.count > 0) {
+        for (u32 i = 0; i < packet->model_commands.count; i++) {
+            backend->draw_model(packet->model_commands.commands[i].model);
+        }
+    }
     
     // End frame
     if (!backend->end_frame(backend, packet)) {
@@ -170,6 +177,7 @@ void renderer_draw_model(model* m) {
         ERROR("Renderer backend not initialized!");
         return;
     }
+    // INFO("%s Drawing model: %s", __FILE__, m->name);
     backend->draw_model(m);
 }   
 

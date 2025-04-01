@@ -14,63 +14,63 @@
 static const vertex vertices[] = {
     // Front face (red)
     // Triangle 1
-    {.position = (vec3){{-1.0f, -1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}}, // bottom-left
-    {.position = (vec3){{1.0f, -1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}},  // bottom-right
-    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}},   // top-right
+    {.position = (vec3){{-1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}}, // bottom-left
+    {.position = (vec3){{1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}},  // bottom-right
+    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}},   // top-right
     // Triangle 2
-    {.position = (vec3){{-1.0f, -1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}}, // bottom-left
-    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}},   // top-right
-    {.position = (vec3){{-1.0f, 1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}},  // top-left
+    {.position = (vec3){{-1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}}, // bottom-left
+    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}},   // top-right
+    {.position = (vec3){{-1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}},  // top-left
 
     // Back face (green)
     // Triangle 1
-    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}}, // bottom-left
-    {.position = (vec3){{-1.0f, 1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}},  // top-left
-    {.position = (vec3){{1.0f, 1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}},   // top-right
+    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}}, // bottom-left
+    {.position = (vec3){{-1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}},  // top-left
+    {.position = (vec3){{1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}},   // top-right
     // Triangle 2
-    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}}, // bottom-left
-    {.position = (vec3){{1.0f, 1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}},   // top-right
-    {.position = (vec3){{1.0f, -1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}},  // bottom-right
+    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}}, // bottom-left
+    {.position = (vec3){{1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}},   // top-right
+    {.position = (vec3){{1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}},  // bottom-right
 
     // Top face (blue)
     // Triangle 1
-    {.position = (vec3){{-1.0f, 1.0f, -1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}}, // back-left
-    {.position = (vec3){{-1.0f, 1.0f, 1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}},  // front-left
-    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}},   // front-right
+    {.position = (vec3){{-1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}}, // back-left
+    {.position = (vec3){{-1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}},  // front-left
+    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}},   // front-right
     // Triangle 2
-    {.position = (vec3){{-1.0f, 1.0f, -1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}}, // back-left
-    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}},   // front-right
-    {.position = (vec3){{1.0f, 1.0f, -1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}},  // back-right
+    {.position = (vec3){{-1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}}, // back-left
+    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}},   // front-right
+    {.position = (vec3){{1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}},  // back-right
 
     // Bottom face (yellow)
     // Triangle 1
-    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}}, // back-left
-    {.position = (vec3){{1.0f, -1.0f, -1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}},  // back-right
-    {.position = (vec3){{1.0f, -1.0f, 1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}},   // front-right
+    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}}, // back-left
+    {.position = (vec3){{1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}},  // back-right
+    {.position = (vec3){{1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}},   // front-right
     // Triangle 2
-    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}}, // back-left
-    {.position = (vec3){{1.0f, -1.0f, 1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}},   // front-right
-    {.position = (vec3){{-1.0f, -1.0f, 1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}},  // front-left
+    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}}, // back-left
+    {.position = (vec3){{1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}},   // front-right
+    {.position = (vec3){{-1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}},  // front-left
 
     // Right face (magenta)
     // Triangle 1
-    {.position = (vec3){{1.0f, -1.0f, -1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}}, // bottom-back
-    {.position = (vec3){{1.0f, 1.0f, -1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}},  // top-back
-    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}},   // top-front
+    {.position = (vec3){{1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}}, // bottom-back
+    {.position = (vec3){{1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}},  // top-back
+    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}},   // top-front
     // Triangle 2
-    {.position = (vec3){{1.0f, -1.0f, -1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}}, // bottom-back
-    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}},   // top-front
-    {.position = (vec3){{1.0f, -1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}},  // bottom-front
+    {.position = (vec3){{1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}}, // bottom-back
+    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}},   // top-front
+    {.position = (vec3){{1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}},  // bottom-front
 
     // Left face (cyan)
     // Triangle 1
-    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}}, // bottom-back
-    {.position = (vec3){{-1.0f, -1.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}},  // bottom-front
-    {.position = (vec3){{-1.0f, 1.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}},   // top-front
+    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}}, // bottom-back
+    {.position = (vec3){{-1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}},  // bottom-front
+    {.position = (vec3){{-1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}},   // top-front
     // Triangle 2
-    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}}, // bottom-back
-    {.position = (vec3){{-1.0f, 1.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}},   // top-front
-    {.position = (vec3){{-1.0f, 1.0f, -1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}}   // top-back
+    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}}, // bottom-back
+    {.position = (vec3){{-1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}},   // top-front
+    {.position = (vec3){{-1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}}   // top-back
 };
 
 // Event handler function
@@ -322,6 +322,7 @@ b8 game_initialize(game *game_instance)
     // Initialize mesh and text commands arrays
     state->mesh_commands = darray_create(mesh_command);
     state->text_commands = darray_create(text_command);
+    state->model_commands = darray_create(model_command);
 
     // Register for keyboard and mouse events
     event_register(EVENT_CODE_KEY_PRESSED, state, game_on_event);
@@ -346,17 +347,17 @@ b8 game_initialize(game *game_instance)
         return FALSE;
     }
     // Create and add cube mesh commands to the array
-    render_mesh(state, cube_mesh, 
+    add_mesh_to_render_packet(state, cube_mesh, 
                 (vec3){{0.0f, 0.0f, 0.0f}},            // position at origin (0,0,0)
                 (vec3){{0.0f, 45.0f, 0.0f}},           // Y-axis rotation for visibility
                 (vec3){{1.0f, 1.0f, 1.0f}},            // uniform scale
                 (vec4){{1.0f, 0.0f, 0.0f, 1.0f}});     // bright red color
                 
-    render_mesh(state, cube_mesh2, 
-                (vec3){{-3.0f, 0.0f, 0.0f}},           // positioned 3 units left of origin
-                (vec3){{0.0f, 0.0f, 0.0f}},            // no rotation
-                (vec3){{1.0f, 2.0f, 1.0f}},            // taller cube
-                (vec4){{0.0f, 1.0f, 0.0f, 1.0f}});     // bright green color
+    // add_mesh_to_render_packet(state, cube_mesh2, 
+    //             (vec3){{-3.0f, 0.0f, 0.0f}},           // positioned 3 units left of origin
+    //             (vec3){{0.0f, 0.0f, 0.0f}},            // no rotation
+    //             (vec3){{1.0f, 2.0f, 1.0f}},            // taller cube
+    //             (vec4){{0.0f, 1.0f, 0.0f, 1.0f}});     // bright green color
 
     // Create a new font
     state->font = renderer_create_font("assets/fonts/NotoMono-Regular.ttf", 18);
@@ -366,17 +367,20 @@ b8 game_initialize(game *game_instance)
     }
 
     // Create a new model
-     state->model = renderer_create_model("assets/models/cube.obj");
-     render_mesh(state, state->model->mesh, 
-                (vec3){{-5.0f, 0.0f, 0.0f}},            // position at origin (0,0,0)
-                (vec3){{0.0f, 45.0f, 0.0f}},           // Y-axis rotation for visibility
-                (vec3){{1.0f, 1.0f, 1.0f}},            // uniform scale
-                (vec4){{1.0f, 0.0f, 0.0f, 1.0f}});     // bright red color
-    // if (!state->model) {
-    //     ERROR("Failed to create model!");
-    //     return FALSE;
-    // }
-
+    state->model_commands->model = renderer_create_model("assets/models/plane.obj");
+    if (!state->model_commands->model) {
+        ERROR("Failed to create model!");
+        return FALSE;
+    }
+    
+    // Position the plane model in a visible location
+    // These will be directly used in the renderer_draw_model function
+    add_model_to_render_packet(state, state->model_commands->model, 
+                (vec3){{-5.0f, -1.0f, 0.0f}},    // Position in front of camera and slightly below
+                (vec3){{0.0f, 0.0f, 0.0f}},      // No rotation
+                (vec3){{2.0f, 2.0f, 2.0f}},      // Larger scale to make it more visible
+                (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}); // White color to show texture properly
+    
     return TRUE;
 }
 
@@ -390,19 +394,26 @@ b8 game_update(game *game_instance, f32 delta_time)
     state->fps = 1.0f / delta_time;
     char text[128]; 
     sprintf(text, "FPS: %.1f", state->fps);
-    render_text(state, text, 0, (vec2){{50.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+    render_text(state, text, 0, (vec2){{20.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
 
     sprintf(text, "Camera: (%.1f, %.1f, %.1f)", 
             state->camera_position.x, state->camera_position.y, state->camera_position.z);
-    render_text(state, text, 1, (vec2){{50.0f, 100.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+    render_text(state, text, 1, (vec2){{20.0f, 70.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+
+    sprintf(text, "Model Count: %llu", darray_length(state->model_commands));
+    render_text(state, text, 2, (vec2){{20.0f, 90.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+
+    sprintf(text, "Model Position: (%.1f, %.1f, %.1f)", 
+            state->model_commands->position.x, state->model_commands->position.y, state->model_commands->position.z);
+    render_text(state, text, 3, (vec2){{20.0f, 110.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
 
     // Update all mesh positions based on their IDs
-    for (u64 i = 0; i < darray_length(state->mesh_commands); i++) {
-        if (state->mesh_commands[i].mesh->id == 1)
-        {
-            // update_mesh_rotation(state, delta_time, state->mesh_commands[i].mesh->id);
-        }
-    }
+    // for (u64 i = 0; i < darray_length(state->mesh_commands); i++) {
+    //     if (state->mesh_commands[i].mesh->id == 1)
+    //     {
+    //         // update_mesh_rotation(state, delta_time, state->mesh_commands[i].mesh->id);
+    //     }
+    // }
 
     return TRUE;
 }
@@ -426,7 +437,7 @@ b8 game_render(game *game_instance, f32 delta_time)
     if (mesh_count > 0)
     {
         current_packet.mesh_commands.commands = state->mesh_commands;
-        current_packet.mesh_commands.count = (u32)mesh_count;
+        current_packet.mesh_commands.count = (u32)mesh_count; 
         
         // Debug output
         #if 0
@@ -438,7 +449,9 @@ b8 game_render(game *game_instance, f32 delta_time)
     }
     else
     {
-        ERROR("No meshes to render!");
+        current_packet.mesh_commands.count = 0;
+        current_packet.mesh_commands.commands = NULL;
+        // ERROR("No meshes to render!");
     }
 
     // Set text commands from the darray
@@ -450,10 +463,23 @@ b8 game_render(game *game_instance, f32 delta_time)
     }
     else
     {
-        ERROR("No text to render!");
+        current_packet.text_commands.count = 0;
+        current_packet.text_commands.commands = NULL;
+        // ERROR("No text to render!");
     }
-    // Draw the model
-    // renderer_draw_model(state->model);
+
+    u64 model_count = darray_length(state->model_commands);
+    if (model_count > 0)
+    {
+        current_packet.model_commands.commands = state->model_commands;
+        current_packet.model_commands.count = (u32)model_count;
+    }
+    else
+    {
+        current_packet.model_commands.count = 0;
+        current_packet.model_commands.commands = NULL;
+        // ERROR("No models to render!");
+    }
 
     // Draw the frame
     renderer_draw_frame(&current_packet);
@@ -507,7 +533,7 @@ void game_shutdown(game *game_instance)
     }
 }
 
-void render_mesh(game_state *state, mesh *mesh, vec3 position, vec3 rotation, vec3 scale, vec4 color)
+void add_mesh_to_render_packet(game_state *state, mesh *mesh, vec3 position, vec3 rotation, vec3 scale, vec4 color)
 {
     mesh_command mesh_cmd = {
         .mesh = mesh,
@@ -518,6 +544,19 @@ void render_mesh(game_state *state, mesh *mesh, vec3 position, vec3 rotation, ve
     darray_push(state->mesh_commands, mesh_cmd);
     INFO("Added mesh to render list. Position: (%.2f, %.2f, %.2f), Total count: %llu",
          position.x, position.y, position.z, darray_length(state->mesh_commands));
+}
+
+void add_model_to_render_packet(game_state *state, model *model, vec3 position, vec3 rotation, vec3 scale, vec4 color)
+{
+    model_command model_cmd = {
+        .model = model,
+        .position = position,
+        .rotation = rotation,
+        .scale = scale,
+        .color = color};
+    darray_push(state->model_commands, model_cmd);
+    INFO("Added model to render list. Position: (%.2f, %.2f, %.2f), Total count: %llu",
+         position.x, position.y, position.z, darray_length(state->model_commands));
 }
 
 void render_text(game_state *state, const char *text, u32 text_id, vec2 position, vec4 color, f32 scale, font *font)

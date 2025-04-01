@@ -6,8 +6,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
 #include <stddef.h>  // For NULL
-// Forward declare model struct
-typedef struct model model;
+
 #include "platform/platform.h"
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -15,6 +14,8 @@ typedef struct model model;
 
 // Forward declares
 typedef struct FT_LibraryRec_ *FT_Library;
+// Forward declare model struct
+typedef struct model model;
 
 typedef struct opengl_renderer_state {
     struct platform_state* plat_state;

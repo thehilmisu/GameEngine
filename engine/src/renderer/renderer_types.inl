@@ -13,6 +13,7 @@ typedef enum renderer_backend_type {
 // Vertex data structure
 typedef struct vertex {
     vec3 position;
+    vec2 tex_coords;  // Texture coordinates
     vec4 color;
 } vertex;
 
@@ -43,6 +44,16 @@ typedef struct font {
     u32 vbo;
 } font;
 
+// Texture data structure
+typedef struct texture {
+    u32 id;                // OpenGL texture ID
+    u32 width;             // Width of the texture
+    u32 height;            // Height of the texture
+    u32 channels;          // Number of channels (1=R, 2=RG, 3=RGB, 4=RGBA)
+    char path[256];        // Path to the texture file
+    void* data;            // Raw texture data (can be NULL after upload to GPU)
+} texture;
+
 // Mesh data structure
 typedef struct mesh {
     u32 id;
@@ -53,8 +64,6 @@ typedef struct mesh {
     GLuint vao;
     GLuint vbo;
 } mesh;
-
-
 
 // Command structures
 typedef struct text_command {
@@ -84,7 +93,18 @@ typedef struct model {
     b8 is_indexed;         // Whether the model uses indexed geometry
     char name[64];         // Model name
     mesh* mesh;
+    texture* texture;      // Model texture
 } model;
+
+typedef struct model_command {
+    u32 model_id;
+    vec3 position;
+    vec3 rotation;
+    vec3 scale;
+    vec4 color;
+    model* model;
+} model_command;
+
 // Render packet structure
 typedef struct render_packet {
     f32 delta_time;  // Time since last frame
@@ -96,7 +116,10 @@ typedef struct render_packet {
         mesh_command* commands;
         u32 count;
     } mesh_commands;
-    model* model;
+    struct {
+        model_command* commands;
+        u32 count;
+    } model_commands;
     vec3 camera_position;
     vec3 camera_rotation;
 } render_packet;

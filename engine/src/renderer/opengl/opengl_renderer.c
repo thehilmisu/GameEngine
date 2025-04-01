@@ -6,6 +6,7 @@
 #include "core/file_operations.h"
 #include "platform/platform.h"
 #include "models/model.h"
+#include "resources/texture.h"
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 
@@ -92,9 +93,11 @@ b8 opengl_renderer_backend_initialize(renderer_backend* backend, const char* app
 
     // Set vertex attributes
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, position));
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, color));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, tex_coords));
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, color));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
 
     // Set up text rendering VAO/VBO
     glGenVertexArrays(1, &state->text_vao);
@@ -104,7 +107,7 @@ b8 opengl_renderer_backend_initialize(renderer_backend* backend, const char* app
     // Allocate enough memory for 6 vertices (2 triangles = 1 quad)
     glBufferData(GL_ARRAY_BUFFER, sizeof(text_vertex) * 6, NULL, GL_DYNAMIC_DRAW);
 
-    // Set up vertex attributes for the text vertex structure
+    // Set vertex attributes for the text vertex structure
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(text_vertex), (void*)offsetof(text_vertex, position));
     glEnableVertexAttribArray(0);
 
@@ -240,10 +243,31 @@ mesh* opengl_renderer_create_mesh(const vertex* vertices, u32 vertex_count) {
     glBufferData(GL_ARRAY_BUFFER, m->vertex_buffer_size, m->vertices, GL_STATIC_DRAW);
 
     // Set vertex attributes
+    // Position attribute (3 floats)
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, position));
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, color));
     glEnableVertexAttribArray(0);
+    INFO("Mesh %u: Set position attribute at location 0, offset %lu", m->id, offsetof(vertex, position));
+    
+    // Texture coordinate attribute (2 floats)
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, tex_coords));
     glEnableVertexAttribArray(1);
+    INFO("Mesh %u: Set texture coordinates attribute at location 1, offset %lu", m->id, offsetof(vertex, tex_coords));
+    
+    // Color attribute (4 floats)
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, color));
+    glEnableVertexAttribArray(2);
+    INFO("Mesh %u: Set color attribute at location 2, offset %lu", m->id, offsetof(vertex, color));
+
+    // Debug: Check first few vertices
+    if (vertex_count > 0) {
+        for (u32 i = 0; i < (vertex_count > 5 ? 5 : vertex_count); i++) {
+            INFO("Mesh %u: Vertex %u: pos=(%f,%f,%f), tex=(%f,%f), color=(%f,%f,%f,%f)",
+                m->id, i,
+                vertices[i].position.x, vertices[i].position.y, vertices[i].position.z,
+                vertices[i].tex_coords.x, vertices[i].tex_coords.y,
+                vertices[i].color.x, vertices[i].color.y, vertices[i].color.z, vertices[i].color.w);
+        }
+    }
 
     return m;
 }
@@ -306,6 +330,21 @@ void opengl_renderer_draw_mesh(mesh* m) {
                 break;
             }
         }
+        for(u32 i = 0; i < state->current_packet->model_commands.count; i++)
+        {
+            if(state->current_packet->model_commands.commands[i].model->mesh == m)
+            {
+                // Create model matrix from mesh properties
+                create_model_matrix(&state->model_matrix,
+                                  state->current_packet->model_commands.commands[i].position,
+                                  state->current_packet->model_commands.commands[i].rotation,
+                                  state->current_packet->model_commands.commands[i].scale);
+                
+                // Set the model matrix uniform using our shader system
+                shader_set_mat4(&program, "model", &state->model_matrix, FALSE);
+                break;
+            }
+        }
     } else {
         // Set identity matrices for model, view and projection when no packet is available
         mat4 identity = {
@@ -349,24 +388,62 @@ void opengl_renderer_destroy_model(model* m) {
     }
 
     // Free the model struct itself
-    // kfree(m, sizeof(model), MEMORY_TAG_RENDERER);
+    kfree(m, sizeof(model), MEMORY_TAG_RENDERER);
 }
 
 void opengl_renderer_draw_model(model* m) {
-    INFO("%s Drawing model: %s", __FILE__, m->name);
+    // INFO("%s Drawing model: %s", __FILE__, m->name);
     if (!m) {
         ERROR("Cannot draw NULL model");
-    }else{
+    } else {
+        
+        opengl_renderer_state* state = global_renderer_state;
+        if (!state) {
+            ERROR("Cannot draw model, renderer state is NULL");
+            return;
+        }
+        // Create a shader_program struct from the program ID
+        shader_program program = {0};
+        program.program_id = state->shader_program;
+        
+        // Use the shader
+        shader_bind(&program);
+        
+        // Bind texture if available
+        if (m->texture) {
+            // INFO("Model %s has texture with ID %u, size %ux%u", 
+            //      m->name, m->texture->id, m->texture->width, m->texture->height);
+                 
+            // Debug the texture state
+            GLint texture_unit = 0;
+            shader_set_int(&program, "textureSampler", texture_unit);
+            // INFO("Set textureSampler uniform to %d for texture ID %u", texture_unit, m->texture->id);
+            
+            texture_bind(m->texture, texture_unit);
+            // INFO("Bound texture ID %u to texture unit %d", m->texture->id, texture_unit);
+            
+            shader_set_int(&program, "hasTexture", 1);  // Tell shader to use texture
+            // INFO("Set hasTexture uniform to 1");
+            
+            // Verify the uniform's value
+            GLint location = glGetUniformLocation(program.program_id, "hasTexture");
+            GLint value;
+            glGetUniformiv(program.program_id, location, &value);
+            // INFO("Verified hasTexture uniform value: %d (location: %d)", value, location);
+        } else {
+            shader_set_int(&program, "hasTexture", 0);  // Tell shader to use color
+            // INFO("Model %s has no texture, set hasTexture to 0", m->name);
+        }
+        
         // Draw the mesh
-        // mesh* mesh = m->mesh;
-        // mesh->id = 8;
-        // mesh->vertices = m->vertices;
-        // mesh->vertex_count = m->vertex_count;
-        // mesh->vertex_buffer_size = m->vertex_buffer_size;
-        // mesh->vao = m->vao;
-        // mesh->vbo = m->vbo; 
-
-        // opengl_renderer_draw_mesh(m->mesh_cmd->mesh);
+        opengl_renderer_draw_mesh(m->mesh);
+        
+        // Unbind texture
+        if (m->texture) {
+            texture_unbind_all();
+            shader_set_int(&program, "hasTexture", 0);  // Tell shader to use color
+            // INFO("Unbound all textures after drawing model %s", m->name);
+        }
     }
 }
 
@@ -661,7 +738,7 @@ void opengl_renderer_draw_text(font* f, const char* text, vec2 position, vec4 co
     shader_set_mat4(&program, "projection", &projection, FALSE);
     
     // Set texture unit using our shader system
-    shader_set_int(&program, "textTexture", 0);
+    shader_set_int(&program, "textureSampler", 0);
     glActiveTexture(GL_TEXTURE0);
     
     // Bind font's VAO

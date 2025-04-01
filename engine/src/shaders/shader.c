@@ -149,6 +149,9 @@ void shader_set_int(const shader_program* program, const char* name, int value) 
     GLint location = glGetUniformLocation(program->program_id, name);
     if (location != -1) {
         glUniform1i(location, value);
+        // INFO("Set uniform '%s' to value %d in shader %u", name, value, program->program_id);
+    } else {
+        WARN("Uniform '%s' not found in shader %u", name, program->program_id);
     }
 }
 

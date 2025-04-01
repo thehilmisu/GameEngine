@@ -3,6 +3,7 @@
 #include "core/file_operations.h"
 #include "core/kstring.h"
 #include "renderer/renderer_frontend.h"
+#include "resources/texture.h"
 #include "containers/darray.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -209,11 +210,44 @@ model* model_load_obj(const char* file_path) {
     m->vertex_count = (u32)(face_count * 3); // Each face has 3 vertices
     m->vertices = kallocate(sizeof(vertex) * m->vertex_count, MEMORY_TAG_MODEL);
     m->is_indexed = FALSE;
+    m->texture = NULL;  // Initialize texture pointer to NULL
     
     // Extract filename for model name
     char* filename = extract_filename(file_path);
     strncpy(m->name, filename, sizeof(m->name) - 1);
     m->name[sizeof(m->name) - 1] = '\0'; // Ensure null termination
+    
+    // Try to load a texture for this model
+    // First, check if a texture with the same name as the model exists
+    char texture_path[512];
+    snprintf(texture_path, sizeof(texture_path), "assets/textures/%s.png", filename);
+    
+    // Try to load the texture
+    texture* tex = texture_load(texture_path);
+    if (!tex) {
+        // Try jpg format if png failed
+        snprintf(texture_path, sizeof(texture_path), "assets/textures/%s.jpg", filename);
+        tex = texture_load(texture_path);
+        
+        if (!tex) {
+            // Fall back to a default texture or create a checkerboard pattern
+            INFO("Creating default checkerboard texture for model %s", filename);
+            tex = texture_create_default_checkerboard();
+            
+            if (!tex) {
+                WARN("Could not create default texture for model %s. Model will use color data only.", filename);
+            } else {
+                INFO("Using default checkerboard texture for model %s", filename);
+            }
+        } else {
+            INFO("Loaded texture %s for model %s", texture_path, filename);
+        }
+    } else {
+        INFO("Loaded texture %s for model %s", texture_path, filename);
+    }
+    
+    m->texture = tex;
+    
     kfree(filename, strlen(filename) + 1, MEMORY_TAG_STRING);
     
     // Convert faces to vertices
@@ -240,17 +274,21 @@ model* model_load_obj(const char* file_path) {
             m->vertices[vertex_index].position.y = obj_vertices[v_idx].y;
             m->vertices[vertex_index].position.z = obj_vertices[v_idx].z;
             
+            // Texture coordinates
+            if (texcoord_count > 0 && t_idx < texcoord_count) {
+                m->vertices[vertex_index].tex_coords.x = obj_texcoords[t_idx].u;
+                m->vertices[vertex_index].tex_coords.y = obj_texcoords[t_idx].v;
+            } else {
+                // Default texture coordinates
+                m->vertices[vertex_index].tex_coords.x = 0.0f;
+                m->vertices[vertex_index].tex_coords.y = 0.0f;
+            }
+            
             // Color (default to white)
             m->vertices[vertex_index].color.x = 1.0f; // R
             m->vertices[vertex_index].color.y = 1.0f; // G
             m->vertices[vertex_index].color.z = 1.0f; // B
             m->vertices[vertex_index].color.w = 1.0f; // A
-            
-            // Texture coordinates
-            if (texcoord_count > 0 && t_idx < texcoord_count) {
-                // We could store these in the vertex structure if needed
-                // For now, we're using solid colors
-            }
             
             // Normals
             if (normal_count > 0 && n_idx < normal_count) {
@@ -262,10 +300,7 @@ model* model_load_obj(const char* file_path) {
     
     // Create mesh for rendering
     m->mesh = renderer_create_mesh(m->vertices, m->vertex_count);
-    // m->mesh->position = (vec3){0.0f, 0.0f, 0.0f};
-    // m->mesh->rotation = (vec3){0.0f, 0.0f, 0.0f};
-    // m->mesh->scale = (vec3){1.0f, 1.0f, 1.0f};
-    // m->mesh->color = (vec4){1.0f, 1.0f, 1.0f, 1.0f};
+   
     
     // Register the model
     // register_model(m);
@@ -273,10 +308,10 @@ model* model_load_obj(const char* file_path) {
     INFO("%s Model '%s' loaded successfully with ID %u", __FILE__, m->name, m->id);
     
     // Free temporary storage
-    // darray_destroy(vertices);
-    // darray_destroy(texcoords);
-    // darray_destroy(normals);
-    // darray_destroy(faces);
+    darray_destroy(vertices);
+    darray_destroy(texcoords);
+    darray_destroy(normals);
+    darray_destroy(faces);
     
     return m;
 }
@@ -290,6 +325,11 @@ void model_destroy(model* m) {
     // Destroy mesh
     if (m->mesh) {
         renderer_destroy_mesh(m->mesh);
+    }
+    
+    // Destroy texture
+    if (m->texture) {
+        texture_destroy(m->texture);
     }
     
     // Free vertex data
