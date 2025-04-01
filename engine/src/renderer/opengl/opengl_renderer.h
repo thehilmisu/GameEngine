@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../renderer_backend.h"
+#include "shaders/shader.h"
 #include <GL/glew.h>  // GLEW must be included before any OpenGL headers
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_opengl.h>
@@ -17,14 +18,14 @@ typedef struct opengl_renderer_state {
     struct platform_state* plat_state;
     SDL_Window* window;
     SDL_GLContext gl_context;
-    u32 shader_program;
-    u32 text_shader_program;  // Added text shader program
+    u32 shader_program;            // Standard shader program ID
+    u32 text_shader_program;       // Text shader program ID
     u32 vao;
     u32 vbo;
-    u32 text_vao;            // Added text VAO
-    u32 text_vbo;            // Added text VBO
-    f32 rotation;  // Add rotation state
-    render_packet* current_packet;  // Add current packet pointer
+    u32 text_vao;                  // Text VAO
+    u32 text_vbo;                  // Text VBO
+    f32 rotation;                  // Rotation state
+    render_packet* current_packet; // Current packet pointer
     FT_Library ft_library;         // FreeType library instance
     
     // Matrices for rendering

@@ -7,43 +7,12 @@
 #include "platform/platform.h"
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
-#include <ft2build.h>
-#include FT_FREETYPE_H
 
 // Forward declare check functions
 void check_shader_error(u32 shader, const char* type);
 void check_program_error(u32 program);
 void check_gl_error(const char* op);
 
-// Text vertex shader source
-static const char* text_vertex_shader_source = 
-"#version 330 core\n"
-"layout (location = 0) in vec3 vertex;\n"
-"layout (location = 1) in vec2 texCoords;\n"
-"layout (location = 2) in vec4 vertexColor;\n"
-"out vec2 TexCoords;\n"
-"out vec4 Color;\n"
-"uniform mat4 projection;\n"
-"void main() {\n"
-"   // Simple 2D projection for UI elements\n"
-"   gl_Position = projection * vec4(vertex, 1.0);\n"
-"   TexCoords = texCoords;\n"
-"   Color = vertexColor;\n"
-"}\n";
-
-// Text fragment shader source
-static const char* text_fragment_shader_source = 
-"#version 330 core\n"
-"in vec2 TexCoords;\n"
-"in vec4 Color;\n"
-"out vec4 FragColor;\n"
-"uniform sampler2D textTexture;\n"
-"void main() {\n"
-"   // Sample the texture for alpha value\n"
-"   float alpha = texture(textTexture, TexCoords).r;\n"
-"   if (alpha < 0.1) discard;\n"
-"   FragColor = vec4(Color.rgb, alpha);\n"
-"}\n";
 
 static u32 next_mesh_id = 0;
 static opengl_renderer_state* global_renderer_state = NULL;
@@ -99,64 +68,18 @@ b8 opengl_renderer_backend_initialize(renderer_backend* backend, const char* app
         return FALSE;
     }
 
-    char* standard_vertex_shader;
-    u64 standard_vertex_shader_size = 1024;
-    if(!read_file_to_buffer("assets/shaders/standard_vertex.vert", (void**)&standard_vertex_shader, &standard_vertex_shader_size)) {
-        ERROR("Failed to read standard vertex shader");
+    // Load standard shaders using the new shader system
+    shader_program standard_shader = shader_create_from_files(
+        "assets/shaders/standard_vertex.vert", 
+        "assets/shaders/standard_frag.frag"
+    );
+    
+    if (standard_shader.program_id == 0) {
+        ERROR("Failed to create standard shader program");
         return FALSE;
     }
-    // INFO("Standard vertex shader: %s", standard_vertex_shader);
-    // Create and compile vertex shader
-    GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, &standard_vertex_shader, NULL);
-    glCompileShader(vertex_shader);
-
-    // Check for vertex shader compilation errors
-    GLint success;
-    GLchar info_log[512];
-    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertex_shader, 512, NULL, info_log);
-        ERROR("Vertex shader compilation failed: %s", info_log);
-        return FALSE;
-    }
-
-    char* standard_fragment_shader;
-    u64 standard_fragment_shader_size = 1024;
-    if(!read_file_to_buffer("assets/shaders/standard_frag.frag", (void**)&standard_fragment_shader, &standard_fragment_shader_size)) {
-        ERROR("Failed to read standard fragment shader");
-        return FALSE;
-    }
-    // Create and compile fragment shader
-    GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, &standard_fragment_shader, NULL);
-    glCompileShader(fragment_shader);
-
-    // Check for fragment shader compilation errors
-    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fragment_shader, 512, NULL, info_log);
-        ERROR("Fragment shader compilation failed: %s", info_log);
-        return FALSE;
-    }
-
-    // Create shader program
-    state->shader_program = glCreateProgram();
-    glAttachShader(state->shader_program, vertex_shader);
-    glAttachShader(state->shader_program, fragment_shader);
-    glLinkProgram(state->shader_program);
-
-    // Check for shader program linking errors
-    glGetProgramiv(state->shader_program, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(state->shader_program, 512, NULL, info_log);
-        ERROR("Shader program linking failed: %s", info_log);
-        return FALSE;
-    }
-
-    // Clean up shaders
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
+    
+    state->shader_program = standard_shader.program_id;
 
     // Create and bind VAO
     glGenVertexArrays(1, &state->vao);
@@ -195,27 +118,18 @@ b8 opengl_renderer_backend_initialize(renderer_backend* backend, const char* app
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    // Create and compile text shaders
-    u32 text_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(text_vertex_shader, 1, &text_vertex_shader_source, NULL);
-    glCompileShader(text_vertex_shader);
-    check_shader_error(text_vertex_shader, "text vertex");
-
-    u32 text_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(text_fragment_shader, 1, &text_fragment_shader_source, NULL);
-    glCompileShader(text_fragment_shader);
-    check_shader_error(text_fragment_shader, "text fragment");
-
-    // Link text shader program
-    state->text_shader_program = glCreateProgram();
-    glAttachShader(state->text_shader_program, text_vertex_shader);
-    glAttachShader(state->text_shader_program, text_fragment_shader);
-    glLinkProgram(state->text_shader_program);
-    check_program_error(state->text_shader_program);
-
-    // Cleanup shaders
-    glDeleteShader(text_vertex_shader);
-    glDeleteShader(text_fragment_shader);
+    // Create text shader using the shader system
+    shader_program text_shader = shader_create_from_files(
+        "assets/shaders/text_vertex.vert", 
+        "assets/shaders/text_frag.frag"
+    );
+    
+    if (text_shader.program_id == 0) {
+        ERROR("Failed to create text shader program");
+        return FALSE;
+    }
+    
+    state->text_shader_program = text_shader.program_id;
     
     // Get window size for proper aspect ratio
     int width, height;
@@ -250,7 +164,15 @@ void opengl_renderer_backend_shutdown(renderer_backend* backend) {
     // Clean up OpenGL resources
     glDeleteVertexArrays(1, &state->vao);
     glDeleteBuffers(1, &state->vbo);
-    glDeleteProgram(state->shader_program);
+    
+    // Clean up shaders using our new shader system
+    shader_program standard_shader = {0};
+    standard_shader.program_id = state->shader_program;
+    shader_destroy(&standard_shader);
+    
+    shader_program text_shader = {0};
+    text_shader.program_id = state->text_shader_program;
+    shader_destroy(&text_shader);
 
     // Clean up FreeType
     FT_Done_FreeType(state->ft_library);
@@ -349,37 +271,37 @@ void opengl_renderer_draw_mesh(mesh* m) {
         return;
     }
     
-    // Use the shader program
-    glUseProgram(state->shader_program);
+    // Create a shader_program struct from the program ID
+    shader_program program = {0};
+    program.program_id = state->shader_program;
     
-    // Get uniform locations
-    GLint model_loc = glGetUniformLocation(state->shader_program, "model");
-    GLint view_loc = glGetUniformLocation(state->shader_program, "view");
-    GLint proj_loc = glGetUniformLocation(state->shader_program, "projection");
+    // Use the shader using our new shader system
+    shader_bind(&program);
     
+    // Create view matrix based on camera position and rotation if we have a packet
     if (state->current_packet) {
         // Create and set the view matrix based on camera position and rotation
         create_view_matrix(&state->view_matrix, 
-                          state->current_packet->camera_position,
-                          state->current_packet->camera_rotation);
+                         state->current_packet->camera_position,
+                         state->current_packet->camera_rotation);
         
-        // Set the view matrix uniform
-        glUniformMatrix4fv(view_loc, 1, GL_FALSE, (const GLfloat*)&state->view_matrix);
+        // Set the view matrix uniform using our shader system
+        shader_set_mat4(&program, "view", &state->view_matrix, FALSE);
         
-        // Set the projection matrix uniform
-        glUniformMatrix4fv(proj_loc, 1, GL_FALSE, (const GLfloat*)&state->projection_matrix);
+        // Set the projection matrix uniform using our shader system
+        shader_set_mat4(&program, "projection", &state->projection_matrix, FALSE);
         
         // Find the matching mesh command to get position, rotation and scale values
         for (u32 i = 0; i < state->current_packet->mesh_commands.count; i++) {
             if (state->current_packet->mesh_commands.commands[i].mesh == m) {
                 // Create model matrix from mesh properties
                 create_model_matrix(&state->model_matrix,
-                                   state->current_packet->mesh_commands.commands[i].position,
-                                   state->current_packet->mesh_commands.commands[i].rotation,
-                                   state->current_packet->mesh_commands.commands[i].scale);
+                                  state->current_packet->mesh_commands.commands[i].position,
+                                  state->current_packet->mesh_commands.commands[i].rotation,
+                                  state->current_packet->mesh_commands.commands[i].scale);
                 
-                // Set the model matrix uniform
-                glUniformMatrix4fv(model_loc, 1, GL_FALSE, (const GLfloat*)&state->model_matrix);
+                // Set the model matrix uniform using our shader system
+                shader_set_mat4(&program, "model", &state->model_matrix, FALSE);
                 break;
             }
         }
@@ -392,9 +314,9 @@ void opengl_renderer_draw_mesh(mesh* m) {
             0.0f, 0.0f, 0.0f, 1.0f
         };
         
-        glUniformMatrix4fv(model_loc, 1, GL_FALSE, (const GLfloat*)&identity);
-        glUniformMatrix4fv(view_loc, 1, GL_FALSE, (const GLfloat*)&identity);
-        glUniformMatrix4fv(proj_loc, 1, GL_FALSE, (const GLfloat*)&identity);
+        shader_set_mat4(&program, "model", &identity, FALSE);
+        shader_set_mat4(&program, "view", &identity, FALSE);
+        shader_set_mat4(&program, "projection", &identity, FALSE);
     }
     
     // Bind VAO and draw
@@ -443,31 +365,9 @@ font* opengl_renderer_create_font(const char* font_path, u32 font_size) {
     }
 
     INFO("Font loaded successfully with %ld glyphs", face->num_glyphs);
-
-    // Create shader program for text rendering
-    f->shader_program = glCreateProgram();
-    GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-
-    // Compile shaders
-    glShaderSource(vertex_shader, 1, &text_vertex_shader_source, NULL);
-    glShaderSource(fragment_shader, 1, &text_fragment_shader_source, NULL);
-    glCompileShader(vertex_shader);
-    glCompileShader(fragment_shader);
-
-    // Check for shader compilation errors
-    check_shader_error(vertex_shader, "font vertex");
-    check_shader_error(fragment_shader, "font fragment");
-
-    // Attach shaders
-    glAttachShader(f->shader_program, vertex_shader);
-    glAttachShader(f->shader_program, fragment_shader);
-    glLinkProgram(f->shader_program);
-    check_program_error(f->shader_program);
-
-    // Clean up shaders
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
+    
+    // Store the shader program ID
+    f->shader_program = state->text_shader_program;
 
     // Create VAO and VBO for text rendering
     glGenVertexArrays(1, &f->vao);
@@ -648,7 +548,11 @@ void opengl_renderer_destroy_font(font* f) {
     // Delete OpenGL resources
     glDeleteVertexArrays(1, &f->vao);
     glDeleteBuffers(1, &f->vbo);
-    glDeleteProgram(f->shader_program);
+    
+    // Clean up the shader program using our shader system
+    shader_program text_shader = {0};
+    text_shader.program_id = f->shader_program;
+    shader_destroy(&text_shader);
 
     // Free font data
     kfree(f, sizeof(font), MEMORY_TAG_RENDERER);
@@ -691,8 +595,12 @@ void opengl_renderer_draw_text(font* f, const char* text, vec2 position, vec4 co
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // Use font's shader program
-    glUseProgram(f->shader_program);
+    // Create a shader_program struct from the program ID
+    shader_program program = {0};
+    program.program_id = f->shader_program;
+    
+    // Use the shader using our new shader system
+    shader_bind(&program);
     
     // Get window size for proper projection matrix
     int width, height;
@@ -706,13 +614,11 @@ void opengl_renderer_draw_text(font* f, const char* text, vec2 position, vec4 co
         -1.0f, 1.0f, 0.0f, 1.0f
     };
     
-    // Set projection matrix uniform
-    GLint projection_loc = glGetUniformLocation(f->shader_program, "projection");
-    glUniformMatrix4fv(projection_loc, 1, GL_FALSE, (const GLfloat*)&projection);
+    // Set projection matrix uniform using our shader system
+    shader_set_mat4(&program, "projection", &projection, FALSE);
     
-    // Set up texture unit
-    GLint texture_loc = glGetUniformLocation(f->shader_program, "textTexture");
-    glUniform1i(texture_loc, 0);
+    // Set texture unit using our shader system
+    shader_set_int(&program, "textTexture", 0);
     glActiveTexture(GL_TEXTURE0);
     
     // Bind font's VAO
@@ -840,8 +746,8 @@ void create_model_matrix(mat4* matrix, vec3 position, vec3 rotation, vec3 scale)
     
     // Z-axis rotation matrix
     mat4 rz = {
-        cosZ, -sinZ, 0.0f, 0.0f,
-        sinZ, cosZ, 0.0f, 0.0f,
+        cosZ, sinZ, 0.0f, 0.0f,
+        -sinZ, cosZ, 0.0f, 0.0f,
         0.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f
     };
