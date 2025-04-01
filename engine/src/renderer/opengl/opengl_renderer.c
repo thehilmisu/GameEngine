@@ -3,6 +3,7 @@
 #include "core/kmemory.h"
 #include "core/kstring.h"
 #include "core/logger.h"
+#include "core/file_operations.h"
 #include "platform/platform.h"
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
@@ -13,30 +14,6 @@
 void check_shader_error(u32 shader, const char* type);
 void check_program_error(u32 program);
 void check_gl_error(const char* op);
-
-// Standard 3D vertex shader using model-view-projection matrices
-static const char* standard_vertex_shader_source = 
-    "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "layout (location = 1) in vec4 aColor;\n"
-    "out vec4 Color;\n"
-    "uniform mat4 model;\n"
-    "uniform mat4 view;\n"
-    "uniform mat4 projection;\n"
-    "void main() {\n"
-    "    // Apply model-view-projection transformation\n"
-    "    gl_Position = projection * view * model * vec4(aPos, 1.0);\n"
-    "    Color = aColor;\n"
-    "}\0";
-
-// Fragment shader source
-static const char* fragment_shader_source = 
-    "#version 330 core\n"
-    "in vec4 Color;\n"
-    "out vec4 FragColor;\n"
-    "void main() {\n"
-    "    FragColor = Color;\n"
-    "}\0";
 
 // Text vertex shader source
 static const char* text_vertex_shader_source = 
@@ -122,9 +99,16 @@ b8 opengl_renderer_backend_initialize(renderer_backend* backend, const char* app
         return FALSE;
     }
 
+    char* standard_vertex_shader;
+    u64 standard_vertex_shader_size = 1024;
+    if(!read_file_to_buffer("assets/shaders/standard_vertex.vert", (void**)&standard_vertex_shader, &standard_vertex_shader_size)) {
+        ERROR("Failed to read standard vertex shader");
+        return FALSE;
+    }
+    // INFO("Standard vertex shader: %s", standard_vertex_shader);
     // Create and compile vertex shader
     GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, &standard_vertex_shader_source, NULL);
+    glShaderSource(vertex_shader, 1, &standard_vertex_shader, NULL);
     glCompileShader(vertex_shader);
 
     // Check for vertex shader compilation errors
@@ -137,9 +121,15 @@ b8 opengl_renderer_backend_initialize(renderer_backend* backend, const char* app
         return FALSE;
     }
 
+    char* standard_fragment_shader;
+    u64 standard_fragment_shader_size = 1024;
+    if(!read_file_to_buffer("assets/shaders/standard_frag.frag", (void**)&standard_fragment_shader, &standard_fragment_shader_size)) {
+        ERROR("Failed to read standard fragment shader");
+        return FALSE;
+    }
     // Create and compile fragment shader
     GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, &fragment_shader_source, NULL);
+    glShaderSource(fragment_shader, 1, &standard_fragment_shader, NULL);
     glCompileShader(fragment_shader);
 
     // Check for fragment shader compilation errors
@@ -547,7 +537,7 @@ font* opengl_renderer_create_font(const char* font_path, u32 font_size) {
         f->characters[c].bearing_x = face->glyph->bitmap_left;
         f->characters[c].bearing_y = face->glyph->bitmap_top;
         f->characters[c].advance = face->glyph->advance.x;
-        
+       #if 0 
         if (c >= 'A' && c <= 'Z') {
             INFO("Character '%c' metrics: size=%dx%d, bearing=(%d,%d), advance=%d",
                 c,
@@ -557,6 +547,7 @@ font* opengl_renderer_create_font(const char* font_path, u32 font_size) {
                 f->characters[c].bearing_y,
                 f->characters[c].advance >> 6);
         }
+        #endif
     }
 
     // Unbind textures and clean up
