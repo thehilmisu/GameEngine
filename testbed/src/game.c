@@ -7,71 +7,10 @@
 #include <stdio.h>
 #include <math.h>
 #include "core/kstring.h" 
+#include "cube.h" // just for testing
 
 #define CAMERA_SPEED 0.5f
 #define CAMERA_ROTATION_SPEED 1.5f
-// Create a cube - a more obvious 3D shape
-static const vertex vertices[] = {
-    // Front face (red)
-    // Triangle 1
-    {.position = (vec3){{-1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}}, // bottom-left
-    {.position = (vec3){{1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}},  // bottom-right
-    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}},   // top-right
-    // Triangle 2
-    {.position = (vec3){{-1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}}, // bottom-left
-    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}},   // top-right
-    {.position = (vec3){{-1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 0.0f, 1.0f}}},  // top-left
-
-    // Back face (green)
-    // Triangle 1
-    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}}, // bottom-left
-    {.position = (vec3){{-1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}},  // top-left
-    {.position = (vec3){{1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}},   // top-right
-    // Triangle 2
-    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}}, // bottom-left
-    {.position = (vec3){{1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}},   // top-right
-    {.position = (vec3){{1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{0.0f, 1.0f, 0.0f, 1.0f}}},  // bottom-right
-
-    // Top face (blue)
-    // Triangle 1
-    {.position = (vec3){{-1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}}, // back-left
-    {.position = (vec3){{-1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}},  // front-left
-    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}},   // front-right
-    // Triangle 2
-    {.position = (vec3){{-1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}}, // back-left
-    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}},   // front-right
-    {.position = (vec3){{1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{0.0f, 0.0f, 1.0f, 1.0f}}},  // back-right
-
-    // Bottom face (yellow)
-    // Triangle 1
-    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}}, // back-left
-    {.position = (vec3){{1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}},  // back-right
-    {.position = (vec3){{1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}},   // front-right
-    // Triangle 2
-    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}}, // back-left
-    {.position = (vec3){{1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}},   // front-right
-    {.position = (vec3){{-1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{1.0f, 1.0f, 0.0f, 1.0f}}},  // front-left
-
-    // Right face (magenta)
-    // Triangle 1
-    {.position = (vec3){{1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}}, // bottom-back
-    {.position = (vec3){{1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}},  // top-back
-    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}},   // top-front
-    // Triangle 2
-    {.position = (vec3){{1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}}, // bottom-back
-    {.position = (vec3){{1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}},   // top-front
-    {.position = (vec3){{1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{1.0f, 0.0f, 1.0f, 1.0f}}},  // bottom-front
-
-    // Left face (cyan)
-    // Triangle 1
-    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}}, // bottom-back
-    {.position = (vec3){{-1.0f, -1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 0.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}},  // bottom-front
-    {.position = (vec3){{-1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}},   // top-front
-    // Triangle 2
-    {.position = (vec3){{-1.0f, -1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 0.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}}, // bottom-back
-    {.position = (vec3){{-1.0f, 1.0f, 1.0f}}, .tex_coords = (vec2){{0.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}},   // top-front
-    {.position = (vec3){{-1.0f, 1.0f, -1.0f}}, .tex_coords = (vec2){{1.0f, 1.0f}}, .color = (vec4){{0.0f, 1.0f, 1.0f, 1.0f}}}   // top-back
-};
 
 // Event handler function
 b8 game_on_event(u16 code, void *sender, void *listener_inst, event_context context)
@@ -90,7 +29,7 @@ b8 game_on_event(u16 code, void *sender, void *listener_inst, event_context cont
             // Move camera left (strafe)
             float yaw_rad = state->camera_rotation.y * 3.14159f / 180.0f;
             state->camera_position.x -= CAMERA_SPEED * cosf(yaw_rad);
-            state->camera_position.z -= CAMERA_SPEED * sinf(yaw_rad);
+            // state->camera_position.z -= CAMERA_SPEED * sinf(yaw_rad);
             INFO("Camera moved left: %.2f, %.2f, %.2f", 
                  state->camera_position.x, 
                  state->camera_position.y, 
@@ -102,7 +41,7 @@ b8 game_on_event(u16 code, void *sender, void *listener_inst, event_context cont
             // Move camera right (strafe)
             float yaw_rad = state->camera_rotation.y * 3.14159f / 180.0f;
             state->camera_position.x += CAMERA_SPEED * cosf(yaw_rad);
-            state->camera_position.z += CAMERA_SPEED * sinf(yaw_rad);
+            // state->camera_position.z += CAMERA_SPEED * sinf(yaw_rad);
             INFO("Camera moved right: %.2f, %.2f, %.2f", 
                  state->camera_position.x, 
                  state->camera_position.y, 
@@ -113,7 +52,7 @@ b8 game_on_event(u16 code, void *sender, void *listener_inst, event_context cont
         {
             // Move camera forward
             float yaw_rad = state->camera_rotation.y * 3.14159f / 180.0f;
-            state->camera_position.x += CAMERA_SPEED * sinf(yaw_rad);
+            // state->camera_position.x += CAMERA_SPEED * sinf(yaw_rad);
             state->camera_position.z -= CAMERA_SPEED * cosf(yaw_rad);
             INFO("Camera moved forward: %.2f, %.2f, %.2f", 
                  state->camera_position.x, 
@@ -125,7 +64,7 @@ b8 game_on_event(u16 code, void *sender, void *listener_inst, event_context cont
         {
             // Move camera backward
             float yaw_rad = state->camera_rotation.y * 3.14159f / 180.0f;
-            state->camera_position.x -= CAMERA_SPEED * sinf(yaw_rad);
+            // state->camera_position.x -= CAMERA_SPEED * sinf(yaw_rad);
             state->camera_position.z += CAMERA_SPEED * cosf(yaw_rad);
             INFO("Camera moved backward: %.2f, %.2f, %.2f", 
                  state->camera_position.x, 
@@ -334,13 +273,13 @@ b8 game_initialize(game *game_instance)
 
     // TODO: Move this to a separate function
     //  Create mesh with 36 vertices (6 faces, 2 triangles per face, 3 vertices per triangle)
-    mesh *cube_mesh = renderer_create_mesh(vertices, 36);
+    mesh *cube_mesh = renderer_create_mesh(cube_vertices, 36);
     if (!cube_mesh)
     {
         ERROR("Failed to create cube mesh!");
         return FALSE;
     }
-    mesh *cube_mesh2 = renderer_create_mesh(vertices, 36);
+    mesh *cube_mesh2 = renderer_create_mesh(cube_vertices, 36);
     if (!cube_mesh2)
     {
         ERROR("Failed to create cube mesh!");

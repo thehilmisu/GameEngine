@@ -330,6 +330,7 @@ void opengl_renderer_draw_mesh(mesh* m) {
                 break;
             }
         }
+        //TODO: Find a better way to do this
         for(u32 i = 0; i < state->current_packet->model_commands.count; i++)
         {
             if(state->current_packet->model_commands.commands[i].model->mesh == m)
