@@ -306,20 +306,20 @@ b8 game_initialize(game *game_instance)
     }
 
     // Create a new model
-    state->model_commands->model = renderer_create_model("assets/models/plane.obj");
-    if (!state->model_commands->model) {
-        ERROR("Failed to create model!");
-        return FALSE;
-    }
+    // state->model_commands->model = renderer_create_model("assets/models/plane.obj");
+    // if (!state->model_commands->model) {
+    //     ERROR("Failed to create model!");
+    //     return FALSE;
+    // }
     
     // Position the plane model in a visible location
     // These will be directly used in the renderer_draw_model function
-    add_model_to_render_packet(state, state->model_commands->model, 
-                (vec3){{-5.0f, -1.0f, 0.0f}},    // Position in front of camera and slightly below
-                (vec3){{0.0f, 0.0f, 0.0f}},      // No rotation
-                (vec3){{2.0f, 2.0f, 2.0f}},      // Larger scale to make it more visible
-                (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}); // White color to show texture properly
-    
+    // add_model_to_render_packet(state, state->model_commands->model,
+    //             (vec3){{-5.0f, -1.0f, 0.0f}},    // Position in front of camera and slightly below
+    //             (vec3){{0.0f, 0.0f, 0.0f}},      // No rotation
+    //             (vec3){{2.0f, 2.0f, 2.0f}},      // Larger scale to make it more visible
+    //             (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}); // White color to show texture properly
+    //
     return TRUE;
 }
 
