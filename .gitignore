@@ -1,11 +1,27 @@
+# Build directories
 build/
-*.txt
-*.log
-*.log.*
-*.log.*.*
-*.log.*.*.*
-*.log.*.*.*.*
-*.log.*.*.*.*.*
-bin/*
+bin/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Compiled files
+*.o
 *.so
+*.dylib
+*.dll
 *.a
+*.lib
+
+# Test files
+test.txt
+
+# macOS
+.DS_Store
+
+# Compile commands (generated)
+compile_commands.json

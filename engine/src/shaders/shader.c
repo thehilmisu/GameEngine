@@ -34,6 +34,7 @@ shader_program shader_create_from_source(const char* vertex_source, const char* 
 }
 
 shader_program shader_create_from_files(const char* vertex_path, const char* fragment_path) {
+
     // Default result with zeroed IDs
     shader_program program = {0};
     

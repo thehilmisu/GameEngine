@@ -3,7 +3,7 @@
 #include <core/event.h>
 #include <core/kmemory.h>
 #include <core/kstring.h>
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -292,8 +292,11 @@ b8 platform_read_file_to_buffer(const char* path, char** buffer, u64* size) {
     fseek(file, 0, SEEK_END);
     *size = ftell(file);
     fseek(file, 0, SEEK_SET);
-    *buffer = (char*)malloc(*size);
+    
+    // Allocate one extra byte for null terminator
+    *buffer = (char*)malloc(*size + 1);
     fread(*buffer, 1, *size, file);
+    (*buffer)[*size] = '\0';  // Null terminate the buffer
     fclose(file);
     return TRUE;
 }
