@@ -5,13 +5,13 @@ in vec4 Color;
 
 out vec4 FragColor;
 
-uniform sampler2D texture1;
+uniform sampler2D textureSampler;
 uniform bool useTexture;
 
 void main()
 {
     if (useTexture) {
-        FragColor = texture(texture1, TexCoords) * Color;
+        FragColor = texture(textureSampler, TexCoords) * Color;
     } else {
         FragColor = Color;
     }
