@@ -158,6 +158,16 @@ b8 opengl_renderer_backend_initialize(renderer_backend* backend, const char* app
         0.0f, 0.0f, 0.0f, 1.0f
     };
 
+    // Create a 1x1 white texture as default
+    glGenTextures(1, &state->default_texture);
+    glBindTexture(GL_TEXTURE_2D, state->default_texture);
+    unsigned char white_pixel[4] = {255, 255, 255, 255};
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white_pixel);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    INFO("Created default white texture with ID %u", state->default_texture);
+
     return TRUE;
 }
 
@@ -168,6 +178,7 @@ void opengl_renderer_backend_shutdown(renderer_backend* backend) {
     // Clean up OpenGL resources
     glDeleteVertexArrays(1, &state->vao);
     glDeleteBuffers(1, &state->vbo);
+    glDeleteTextures(1, &state->default_texture);
     
     // Clean up shaders using our new shader system
     shader_program standard_shader = {0};
@@ -303,6 +314,12 @@ void opengl_renderer_draw_mesh(mesh* m) {
     // Use the shader using our new shader system
     shader_bind(&program);
     
+    // Bind default texture for meshes (they use vertex colors)
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state->default_texture);
+    shader_set_int(&program, "textureSampler", 0);
+    shader_set_int(&program, "hasTexture", 0);  // Use vertex colors
+    
     // Create view matrix based on camera position and rotation if we have a packet
     if (state->current_packet) {
         // Create and set the view matrix based on camera position and rotation
@@ -432,8 +449,13 @@ void opengl_renderer_draw_model(model* m) {
             glGetUniformiv(program.program_id, location, &value);
             // INFO("Verified hasTexture uniform value: %d (location: %d)", value, location);
         } else {
+            // Bind default white texture to prevent OpenGL warning
+            GLint texture_unit = 0;
+            shader_set_int(&program, "textureSampler", texture_unit);
+            glActiveTexture(GL_TEXTURE0 + texture_unit);
+            glBindTexture(GL_TEXTURE_2D, state->default_texture);
             shader_set_int(&program, "hasTexture", 0);  // Tell shader to use color
-            // INFO("Model %s has no texture, set hasTexture to 0", m->name);
+            // INFO("Model %s has no texture, bound default texture", m->name);
         }
         
         // Draw the mesh
@@ -738,8 +760,8 @@ void opengl_renderer_draw_text(font* f, const char* text, vec2 position, vec4 co
     // Set projection matrix uniform using our shader system
     shader_set_mat4(&program, "projection", &projection, FALSE);
     
-    // Set texture unit using our shader system
-    shader_set_int(&program, "textureSampler", 0);
+    // Set texture unit using our shader system (text shader uses "text" uniform)
+    shader_set_int(&program, "text", 0);
     glActiveTexture(GL_TEXTURE0);
     
     // Bind font's VAO

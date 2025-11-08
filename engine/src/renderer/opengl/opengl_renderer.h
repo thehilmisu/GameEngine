@@ -30,6 +30,7 @@ typedef struct opengl_renderer_state {
     f32 rotation;                  // Rotation state
     render_packet* current_packet; // Current packet pointer
     FT_Library ft_library;         // FreeType library instance
+    GLuint default_texture;        // 1x1 white texture for untextured objects
     
     // Matrices for rendering
     mat4 projection_matrix;

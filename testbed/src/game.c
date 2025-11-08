@@ -103,7 +103,8 @@ b8 game_on_event(u16 code, void *sender, void *listener_inst, event_context cont
             // Calculate delta movement since last position
             f32 delta_x = (f32)(x - state->last_mouse_x);
             f32 delta_y = (f32)(y - state->last_mouse_y);
-            
+
+
             // Apply sensitivity factor to make rotation more controllable
             const f32 sensitivity = 0.5f;
             state->camera_rotation.y += delta_x * sensitivity; // Left/right movement rotates around Y axis
@@ -124,10 +125,15 @@ b8 game_on_event(u16 code, void *sender, void *listener_inst, event_context cont
     }
     case EVENT_CODE_MOUSE_WHEEL:
     {
-        // u16 x_delta = context.data.u16[0];
-        // u16 y_delta = context.data.u16[1];
-        // u16 z_delta = context.data.u16[2];
-        // INFO("Mouse wheel: %d, %d, %d", x_delta, y_delta, z_delta);
+        u16 x_delta = context.data.u16[0];
+        float yaw_rad = state->camera_rotation.y * 3.14159f / 180.0f;
+        //Random hardcoded value for mouse wheel
+        if (x_delta > 250) {
+            state->camera_position.z += CAMERA_SPEED * cosf(yaw_rad);
+        }else {
+            // Move camera forward
+            state->camera_position.z -= CAMERA_SPEED * cosf(yaw_rad);
+        }
         break;
     }
     case EVENT_CODE_BUTTON_PRESSED:
@@ -135,8 +141,14 @@ b8 game_on_event(u16 code, void *sender, void *listener_inst, event_context cont
         u16 button = context.data.u16[0];
         if(button == SDL_BUTTON_LEFT)
         {
-            INFO("Mouse button pressed: %d", button);
             state->mouse_pressed = TRUE;
+
+            if (checkIfMeshSelected(state, state->last_mouse_x, state->last_mouse_y)) {
+
+            }
+        }
+        else if(button == SDL_BUTTON_RIGHT) {
+
         }
         break;
     }
@@ -145,12 +157,153 @@ b8 game_on_event(u16 code, void *sender, void *listener_inst, event_context cont
         u16 button = context.data.u16[0];
         if(button == SDL_BUTTON_LEFT)
         {
-            INFO("Mouse button released: %d", button);
             state->mouse_pressed = FALSE;
+        }
+        else if(button == SDL_BUTTON_RIGHT) {
+
         }
         break;
     }
+        default: ;
     }
+    return FALSE;
+}
+
+
+// Helper function to project 3D world position to 2D screen coordinates
+void worldToScreen(vec3 worldPos, vec3 cameraPos, vec3 cameraRot, u32 screenWidth, u32 screenHeight, f32* outX, f32* outY) {
+    // Calculate relative position to camera
+    vec3 relative = {
+        .x = worldPos.x - cameraPos.x,
+        .y = worldPos.y - cameraPos.y,
+        .z = worldPos.z - cameraPos.z
+    };
+    
+    // In OpenGL, the camera looks down the negative Z axis
+    // So we need to negate Z to get the correct view space
+    relative.z = -relative.z;
+    
+    // Apply camera rotation (inverse transform)
+    // Convert rotation to radians
+    f32 pitchRad = -cameraRot.x * 3.14159f / 180.0f;
+    f32 yawRad = -cameraRot.y * 3.14159f / 180.0f;
+    
+    // Rotate around Y axis (yaw)
+    f32 cosY = cosf(yawRad);
+    f32 sinY = sinf(yawRad);
+    f32 tempX = relative.x * cosY + relative.z * sinY;
+    f32 tempZ = -relative.x * sinY + relative.z * cosY;
+    relative.x = tempX;
+    relative.z = tempZ;
+    
+    // Rotate around X axis (pitch)
+    f32 cosX = cosf(pitchRad);
+    f32 sinX = sinf(pitchRad);
+    f32 tempY = relative.y * cosX - relative.z * sinX;
+    tempZ = relative.y * sinX + relative.z * cosX;
+    relative.y = tempY;
+    relative.z = tempZ;
+    
+    // Check if object is behind camera (negative Z in view space)
+    if (relative.z <= 0.1f) {
+        *outX = -10000; // Behind camera
+        *outY = -10000;
+        return;
+    }
+    
+    // Perspective projection
+    f32 fov = 45.0f * 3.14159f / 180.0f;
+    f32 aspect = (f32)screenWidth / (f32)screenHeight;
+    f32 tanHalfFov = tanf(fov / 2.0f);
+    
+    // Project to normalized device coordinates (-1 to 1)
+    f32 ndcX = relative.x / (relative.z * tanHalfFov * aspect);
+    f32 ndcY = relative.y / (relative.z * tanHalfFov);
+    
+    // Convert to screen coordinates (0 to width/height)
+    *outX = (ndcX * 0.5f + 0.5f) * screenWidth;
+    *outY = (0.5f - ndcY * 0.5f) * screenHeight;
+}
+
+b8 checkIfMeshSelected(game_state *state, u16 mouseX, u16 mouseY) {
+    u64 mesh_count = darray_length(state->mesh_commands);
+    
+    // Get screen dimensions (you may need to pass these in or store them in state)
+    u32 screenWidth = 1280;  // TODO: Get from window/state
+    u32 screenHeight = 720;
+    
+    INFO("Checking %llu meshes for selection at mouse pos (%d, %d)", mesh_count, mouseX, mouseY);
+
+    for (u64 i = 0; i < mesh_count; ++i) {
+        mesh_command *cmd = &state->mesh_commands[i];
+        
+        // Project mesh's center to 2D screen coordinates
+        f32 centerX, centerY;
+        worldToScreen(cmd->position, state->camera_position, state->camera_rotation, 
+                     screenWidth, screenHeight, &centerX, &centerY);
+        
+        // Check if center is behind camera
+        if (centerX < -5000) {
+            INFO("Mesh %llu is behind camera, skipping", i);
+            continue;
+        }
+        
+        // Project the corners of the mesh's bounding box to get screen-space bounds
+        // For a cube centered at position with scale, corners are at ±scale from center
+        vec3 corners[8];
+        f32 halfSize = 1.0f; // Cube goes from -1 to +1, so half-size is 1
+        
+        // Generate 8 corners of the bounding box
+        corners[0] = (vec3){{cmd->position.x - cmd->scale.x * halfSize, cmd->position.y - cmd->scale.y * halfSize, cmd->position.z - cmd->scale.z * halfSize}};
+        corners[1] = (vec3){{cmd->position.x + cmd->scale.x * halfSize, cmd->position.y - cmd->scale.y * halfSize, cmd->position.z - cmd->scale.z * halfSize}};
+        corners[2] = (vec3){{cmd->position.x - cmd->scale.x * halfSize, cmd->position.y + cmd->scale.y * halfSize, cmd->position.z - cmd->scale.z * halfSize}};
+        corners[3] = (vec3){{cmd->position.x + cmd->scale.x * halfSize, cmd->position.y + cmd->scale.y * halfSize, cmd->position.z - cmd->scale.z * halfSize}};
+        corners[4] = (vec3){{cmd->position.x - cmd->scale.x * halfSize, cmd->position.y - cmd->scale.y * halfSize, cmd->position.z + cmd->scale.z * halfSize}};
+        corners[5] = (vec3){{cmd->position.x + cmd->scale.x * halfSize, cmd->position.y - cmd->scale.y * halfSize, cmd->position.z + cmd->scale.z * halfSize}};
+        corners[6] = (vec3){{cmd->position.x - cmd->scale.x * halfSize, cmd->position.y + cmd->scale.y * halfSize, cmd->position.z + cmd->scale.z * halfSize}};
+        corners[7] = (vec3){{cmd->position.x + cmd->scale.x * halfSize, cmd->position.y + cmd->scale.y * halfSize, cmd->position.z + cmd->scale.z * halfSize}};
+        
+        // Project all corners and find min/max screen coordinates
+        f32 minScreenX = 999999.0f, maxScreenX = -999999.0f;
+        f32 minScreenY = 999999.0f, maxScreenY = -999999.0f;
+        
+        for (int c = 0; c < 8; c++) {
+            f32 sx, sy;
+            worldToScreen(corners[c], state->camera_position, state->camera_rotation, 
+                         screenWidth, screenHeight, &sx, &sy);
+            
+            // Skip corners behind camera
+            if (sx < -5000) continue;
+            
+            if (sx < minScreenX) minScreenX = sx;
+            if (sx > maxScreenX) maxScreenX = sx;
+            if (sy < minScreenY) minScreenY = sy;
+            if (sy > maxScreenY) maxScreenY = sy;
+        }
+        
+        // Add padding to make selection easier (50 pixels on each side)
+        f32 padding = 50.0f;
+        minScreenX -= padding;
+        maxScreenX += padding;
+        minScreenY -= padding;
+        maxScreenY += padding;
+        
+        // Debug output
+        INFO("Mesh %llu: World pos (%.1f, %.1f, %.1f) -> Center (%.1f, %.1f)", 
+             i, cmd->position.x, cmd->position.y, cmd->position.z, centerX, centerY);
+        INFO("  Screen bounds (with padding): X[%.1f to %.1f], Y[%.1f to %.1f]", 
+             minScreenX, maxScreenX, minScreenY, maxScreenY);
+        INFO("  Mouse at: (%.1f, %.1f)", (f32)mouseX, (f32)mouseY);
+        
+        // Check if mouse is within the bounding box
+        if (mouseX >= minScreenX && mouseX <= maxScreenX && 
+            mouseY >= minScreenY && mouseY <= maxScreenY) {
+            INFO(">>> MESH %llu SELECTED! (within bounding box) <<<", i);
+            return TRUE;
+        }
+    }
+    
+    INFO("No mesh selected");
     return FALSE;
 }
 
@@ -292,11 +445,11 @@ b8 game_initialize(game *game_instance)
                 (vec3){{1.0f, 1.0f, 1.0f}},            // uniform scale
                 (vec4){{1.0f, 0.0f, 0.0f, 1.0f}});     // bright red color
                 
-    // add_mesh_to_render_packet(state, cube_mesh2, 
-    //             (vec3){{-3.0f, 0.0f, 0.0f}},           // positioned 3 units left of origin
-    //             (vec3){{0.0f, 0.0f, 0.0f}},            // no rotation
-    //             (vec3){{1.0f, 2.0f, 1.0f}},            // taller cube
-    //             (vec4){{0.0f, 1.0f, 0.0f, 1.0f}});     // bright green color
+    add_mesh_to_render_packet(state, cube_mesh2,
+                (vec3){{-3.0f, 0.0f, 0.0f}},           // positioned 3 units left of origin
+                (vec3){{0.0f, 0.0f, 0.0f}},            // no rotation
+                (vec3){{1.0f, 2.0f, 1.0f}},            // taller cube
+                (vec4){{0.0f, 1.0f, 0.0f, 1.0f}});     // bright green color
 
     // Create a new font
     state->font = renderer_create_font("assets/fonts/NotoMono-Regular.ttf", 18);
@@ -333,18 +486,22 @@ b8 game_update(game *game_instance, f32 delta_time)
     state->fps = 1.0f / delta_time;
     char text[128]; 
     sprintf(text, "FPS: %.1f", state->fps);
-    render_text(state, text, 0, (vec2){{20.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+    render_text(state, 0, text, (vec2){{20.0f, 50.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
 
-    sprintf(text, "Camera: (%.1f, %.1f, %.1f)", 
+    sprintf(text, "Camera Position: (%.1f, %.1f, %.1f)",
             state->camera_position.x, state->camera_position.y, state->camera_position.z);
-    render_text(state, text, 1, (vec2){{20.0f, 70.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+    render_text(state, 1, text, (vec2){{20.0f, 70.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+
+    sprintf(text, "Camera Rotation: (%.1f, %.1f, %.1f)",
+              state->camera_rotation.x, state->camera_rotation.y, state->camera_rotation.z);
+    render_text(state, 2, text, (vec2){{20.0f, 90.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
 
     sprintf(text, "Model Count: %llu", darray_length(state->model_commands));
-    render_text(state, text, 2, (vec2){{20.0f, 90.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+    render_text(state, 3, text, (vec2){{20.0f, 110.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
 
-    sprintf(text, "Model Position: (%.1f, %.1f, %.1f)", 
+    sprintf(text, "Model Position: (%.1f, %.1f, %.1f)",
             state->model_commands->position.x, state->model_commands->position.y, state->model_commands->position.z);
-    render_text(state, text, 3, (vec2){{20.0f, 110.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
+    render_text(state, 4, text, (vec2){{20.0f, 130.0f}}, (vec4){{1.0f, 1.0f, 1.0f, 1.0f}}, 1.0f, state->font);
 
     // Update all mesh positions based on their IDs
     // for (u64 i = 0; i < darray_length(state->mesh_commands); i++) {
@@ -498,7 +655,7 @@ void add_model_to_render_packet(game_state *state, model *model, vec3 position, 
          position.x, position.y, position.z, darray_length(state->model_commands));
 }
 
-void render_text(game_state *state, const char *text, u32 text_id, vec2 position, vec4 color, f32 scale, font *font)
+void render_text(game_state *state, u32 id,  const char *text, vec2 position, vec4 color, f32 scale, font *font)
 {
     // Create a persistent copy of the string
     char *text_copy = string_duplicate(text);
@@ -506,29 +663,31 @@ void render_text(game_state *state, const char *text, u32 text_id, vec2 position
         ERROR("Failed to allocate memory for text");
         return;
     }
-    text_command text_cmd = {
-        .text = text_copy,
-        .text_id = text_id,
-        .position = position,
-        .color = color,
-        .scale = scale,
-        .font = font};
 
     u64 text_count = darray_length(state->text_commands);
     b8 found = FALSE;
-    u32 index = 0;
+    text_command text_cmd = {
+        .text = text_copy,
+        .id = id,
+        .position = position,
+        .color = color,
+        .scale = scale,
+        .font = font
+    };
+
     for (u64 i = 0; i < text_count; i++)
     {
-        if (state->text_commands[i].text_id == text_id)
+        if (state->text_commands[i].id == id)
         {
             state->text_commands[i] = text_cmd;
             found = TRUE;
-            index = i;
             break;
         }
     }
+
     if (!found)
     {
         darray_push(state->text_commands, text_cmd);
     }
+
 }

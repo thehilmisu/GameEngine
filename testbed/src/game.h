@@ -44,9 +44,13 @@ void game_on_resize(game* game_instance, u32 width, u32 height);
 void game_shutdown(game* game_instance);
 void rotate_camera(game_state *state, f32 x, f32 y);
 void tilt_camera(game_state *state, f32 delta_time);
+void worldToScreen(vec3 worldPos, vec3 cameraPos, vec3 cameraRot, u32 screenWidth, u32 screenHeight, f32* outX, f32* outY);
+b8 checkIfMeshSelected(game_state *state, u16 mouseX, u16 mouseY);
+
+
 // Rendering functions
 void add_mesh_to_render_packet(game_state* state, mesh* mesh, vec3 position, vec3 rotation, vec3 scale, vec4 color);
 void add_model_to_render_packet(game_state *state, model *model, vec3 position, vec3 rotation, vec3 scale, vec4 color);
-void render_text(game_state* state, const char* text, u32 text_id, vec2 position, vec4 color, f32 scale, font* font);
+void render_text(game_state* state, u32 id, const char* text, vec2 position, vec4 color, f32 scale, font* font);
 
 #endif
