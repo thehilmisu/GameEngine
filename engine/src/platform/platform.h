@@ -11,7 +11,7 @@ typedef struct platform_state{
 
 b8 platform_startup(
     platform_state* plat_state,
-    const char* appliation_name,
+    const char* application_name,
     i32 x,
     i32 y,
     i32 width,

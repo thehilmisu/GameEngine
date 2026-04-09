@@ -213,7 +213,7 @@ b8 opengl_renderer_backend_begin_frame(renderer_backend* backend, render_packet*
     opengl_renderer_state* state = (opengl_renderer_state*)backend->internal_state;
     state->current_packet = packet;
 
-    glClearColor(0.0f, 0.0f, 0.2f, 1.0f);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Enable depth testing and blending
@@ -319,7 +319,7 @@ void opengl_renderer_draw_mesh(mesh* m) {
     glBindTexture(GL_TEXTURE_2D, state->default_texture);
     shader_set_int(&program, "textureSampler", 0);
     shader_set_int(&program, "hasTexture", 0);  // Use vertex colors
-    
+
     // Create view matrix based on camera position and rotation if we have a packet
     if (state->current_packet) {
         // Create and set the view matrix based on camera position and rotation
@@ -344,6 +344,8 @@ void opengl_renderer_draw_mesh(mesh* m) {
                 
                 // Set the model matrix uniform using our shader system
                 shader_set_mat4(&program, "model", &state->model_matrix, FALSE);
+                shader_set_vec4(&program, "textColor",
+                          &state->current_packet->mesh_commands.commands[i].color);
                 break;
             }
         }
