@@ -29,6 +29,14 @@ b8 game_initialize(game* game_instance) {
         .color    = (vec4){{1.0f, 0.5f, 0.0f, 1.0f}}  // orange
     };
 
+    state->fps_cmd = (text_command){
+        .text = "FPS: 0",
+        .position = (vec2){{10.0f, 20.0f}},
+        .color = (vec4){{1.0f, 1.0f, 1.0f, 1.0f}},
+        .scale = 0.5f,
+        .font = renderer_get_default_font()
+    };
+
     INFO("Game initialized.");
     return TRUE;
 }
@@ -44,6 +52,8 @@ b8 game_update(game* game_instance, f32 delta_time) {
     if (state->cube_cmd.rotation.y >= 360.0f)
         state->cube_cmd.rotation.y -= 360.0f;
 
+    state->fps_cmd.text = "FPS: 60";
+
     return TRUE;
 }
 
@@ -58,6 +68,9 @@ b8 game_render(game* game_instance, f32 delta_time) {
     packet.camera_rotation       = state->camera_rotation;
     packet.mesh_commands.commands = &state->cube_cmd;
     packet.mesh_commands.count    = 1;
+    packet.text_commands.commands = &state->fps_cmd;
+    packet.text_commands.count = 1;
+
 
     renderer_draw_frame(&packet);
     return TRUE;

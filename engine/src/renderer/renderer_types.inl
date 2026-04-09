@@ -140,7 +140,7 @@ typedef struct renderer_backend {
     // Mesh functions
     mesh* (*create_mesh)(const vertex* vertices, u32 vertex_count);
     void (*destroy_mesh)(mesh* m);
-    void (*draw_mesh)(mesh* m);
+    void (*draw_mesh)(mesh_command* m);
     mesh* (*get_mesh)(u32 mesh_id);
 
     // Model functions

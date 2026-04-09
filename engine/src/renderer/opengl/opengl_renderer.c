@@ -295,8 +295,9 @@ void opengl_renderer_destroy_mesh(mesh* m) {
     kfree(m, sizeof(mesh), MEMORY_TAG_RENDERER);
 }
 
-void opengl_renderer_draw_mesh(mesh* m) {
-    if (!m) {
+void opengl_renderer_draw_mesh(mesh_command* m_command) {
+
+    if (!m_command->mesh) {
         ERROR("Cannot draw NULL mesh");
         return;
     }
@@ -332,39 +333,34 @@ void opengl_renderer_draw_mesh(mesh* m) {
         
         // Set the projection matrix uniform using our shader system
         shader_set_mat4(&program, "projection", &state->projection_matrix, FALSE);
-        
-        // Find the matching mesh command to get position, rotation and scale values
-        for (u32 i = 0; i < state->current_packet->mesh_commands.count; i++) {
-            if (state->current_packet->mesh_commands.commands[i].mesh == m) {
-                // Create model matrix from mesh properties
-                create_model_matrix(&state->model_matrix,
-                                  state->current_packet->mesh_commands.commands[i].position,
-                                  state->current_packet->mesh_commands.commands[i].rotation,
-                                  state->current_packet->mesh_commands.commands[i].scale);
-                
-                // Set the model matrix uniform using our shader system
-                shader_set_mat4(&program, "model", &state->model_matrix, FALSE);
-                shader_set_vec4(&program, "textColor",
-                          &state->current_packet->mesh_commands.commands[i].color);
-                break;
-            }
-        }
+
+
+        // Create model matrix from mesh properties
+        create_model_matrix(&state->model_matrix,
+                          m_command->position,
+                          m_command->rotation,
+                          m_command->scale);
+
+        // Set the model matrix uniform using our shader system
+        shader_set_mat4(&program, "model", &state->model_matrix, FALSE);
+        shader_set_vec4(&program, "textColor", &m_command->color);
+
+
         //TODO: Find a better way to do this
-        for(u32 i = 0; i < state->current_packet->model_commands.count; i++)
-        {
-            if(state->current_packet->model_commands.commands[i].model->mesh == m)
-            {
-                // Create model matrix from mesh properties
-                create_model_matrix(&state->model_matrix,
-                                  state->current_packet->model_commands.commands[i].position,
-                                  state->current_packet->model_commands.commands[i].rotation,
-                                  state->current_packet->model_commands.commands[i].scale);
-                
-                // Set the model matrix uniform using our shader system
-                shader_set_mat4(&program, "model", &state->model_matrix, FALSE);
-                break;
-            }
-        }
+        // for(u32 i = 0; i < state->current_packet->model_commands.count; i++) {
+        //     if(state->current_packet->model_commands.commands[i].model->mesh == m)
+        //     {
+        //         // Create model matrix from mesh properties
+        //         create_model_matrix(&state->model_matrix,
+        //                           state->current_packet->model_commands.commands[i].position,
+        //                           state->current_packet->model_commands.commands[i].rotation,
+        //                           state->current_packet->model_commands.commands[i].scale);
+        //
+        //         // Set the model matrix uniform using our shader system
+        //         shader_set_mat4(&program, "model", &state->model_matrix, FALSE);
+        //         break;
+        //     }
+        // }
     } else {
         // Set identity matrices for model, view and projection when no packet is available
         mat4 identity = {
@@ -380,8 +376,8 @@ void opengl_renderer_draw_mesh(mesh* m) {
     }
     
     // Bind VAO and draw
-    glBindVertexArray(m->vao);
-    glDrawArrays(GL_TRIANGLES, 0, m->vertex_count);
+    glBindVertexArray(m_command->mesh->vao);
+    glDrawArrays(GL_TRIANGLES, 0, m_command->mesh->vertex_count);
     
     // Unbind
     glBindVertexArray(0);
@@ -459,9 +455,11 @@ void opengl_renderer_draw_model(model* m) {
             shader_set_int(&program, "hasTexture", 0);  // Tell shader to use color
             // INFO("Model %s has no texture, bound default texture", m->name);
         }
-        
+        mesh_command cmd = {0};
+        cmd.mesh = m->mesh;
+
         // Draw the mesh
-        opengl_renderer_draw_mesh(m->mesh);
+        opengl_renderer_draw_mesh(&cmd);
         
         // Unbind texture
         if (m->texture) {
@@ -647,7 +645,7 @@ b8 opengl_renderer_draw_frame(renderer_backend* backend, render_packet* packet) 
         // Enable depth testing for 3D objects
         glEnable(GL_DEPTH_TEST);
         for (u32 i = 0; i < packet->mesh_commands.count; i++) {
-            opengl_renderer_draw_mesh(packet->mesh_commands.commands[i].mesh);
+            opengl_renderer_draw_mesh(&packet->mesh_commands.commands[i]);
         }
     }
     

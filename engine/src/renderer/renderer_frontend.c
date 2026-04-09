@@ -127,7 +127,7 @@ b8 renderer_draw_frame(render_packet* packet) {
     // Draw mesh commands
     if (packet->mesh_commands.commands && packet->mesh_commands.count > 0) {
         for (u32 i = 0; i < packet->mesh_commands.count; i++) {
-            backend->draw_mesh(packet->mesh_commands.commands[i].mesh);
+            backend->draw_mesh(&packet->mesh_commands.commands[i]);
         }
     }
 

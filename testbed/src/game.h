@@ -10,6 +10,7 @@ typedef struct game_state {
     vec3 camera_rotation;
     mesh* cube_mesh;
     mesh_command cube_cmd;
+    text_command fps_cmd;
 } game_state;
 
 b8 game_initialize(game* game_instance);

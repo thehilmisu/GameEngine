@@ -52,7 +52,7 @@ b8 opengl_renderer_draw_frame(renderer_backend* backend, render_packet* packet);
 // Mesh functions
 mesh* opengl_renderer_create_mesh(const vertex* vertices, u32 vertex_count);
 void opengl_renderer_destroy_mesh(mesh* m);
-void opengl_renderer_draw_mesh(mesh* m);
+void opengl_renderer_draw_mesh(mesh_command* m);
 mesh* opengl_renderer_get_mesh(u32 mesh_id);
 
 // Font functions

@@ -25,12 +25,12 @@ int main(void){
     }
    
     if(!application_create(&game_instance)){
-        INFO("Application failed to create!");
+        ERROR("Application failed to create!");
         return 1;
     }
 
     if(!application_run()){
-        INFO("Application did not shutdown normally");
+        ERROR("Application did not shutdown normally");
         return 2;
     }
 
