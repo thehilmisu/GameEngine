@@ -1,5 +1,6 @@
 #include "game.h"
 #include "entry.h"
+#include "input.h"
 
 #include <core/kmemory.h>
 
@@ -14,8 +15,8 @@ b8 create_game(game* out_game) {
     out_game->update        = game_update;
     out_game->render        = game_render;
     out_game->onresize      = game_on_resize;
-    out_game->on_key_event  = NULL;
-    out_game->on_mouse_event = NULL;
+    out_game->on_key_event  = input_on_key_event;
+    out_game->on_mouse_event = input_on_mouse_event;
 
     out_game->state = kallocate(sizeof(game_state), MEMORY_TAG_GAME);
 

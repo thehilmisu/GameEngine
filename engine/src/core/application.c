@@ -172,19 +172,6 @@ b8 application_on_event(u16 code, void* sender, void* listener_inst, event_conte
              event_fire(EVENT_CODE_APPLICATION_QUIT, 0, data);
              // Block anything else from processing this.
              return TRUE;
-         } else if (key_code == SDLK_a) {
-             // Example on checking for a key
-             DEBUG("Explicit - A key pressed!");
-         } else {
-             DEBUG("'%c' key pressed in window.", key_code);
-         }
-     } else if (code == EVENT_CODE_KEY_RELEASED) {
-         u16 key_code = context.data.u16[0];
-         if (key_code == SDLK_b) {
-             // Example on checking for a key
-             DEBUG("Explicit - B key released!");
-         } else {
-             DEBUG("'%c' key released in window.", key_code);
          }
      }
      return FALSE;
